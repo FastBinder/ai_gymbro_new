@@ -6,6 +6,7 @@ import '../models/exercise.dart';
 import '../models/workout.dart';
 import '../widgets/add_set_dialog.dart';
 import '../services/database_service.dart';
+import '../widgets/custom_widgets.dart';
 import 'workout_details_page.dart';
 
 class WorkoutPage extends StatefulWidget {
@@ -90,20 +91,64 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
     });
   }
 
+  // Получить иконку для группы мышц
+  IconData _getMuscleGroupIcon(MuscleGroup muscle) {
+    switch (muscle) {
+      case MuscleGroup.chest:
+        return Icons.airline_seat_flat;
+      case MuscleGroup.back:
+      case MuscleGroup.lats:
+      case MuscleGroup.middleBack:
+      case MuscleGroup.lowerBack:
+        return Icons.accessibility_new;
+      case MuscleGroup.biceps:
+      case MuscleGroup.triceps:
+      case MuscleGroup.forearms:
+        return Icons.fitness_center;
+      case MuscleGroup.quadriceps:
+      case MuscleGroup.hamstrings:
+      case MuscleGroup.glutes:
+      case MuscleGroup.calves:
+        return Icons.directions_run;
+      case MuscleGroup.shoulders:
+      case MuscleGroup.frontDelts:
+      case MuscleGroup.sideDelts:
+      case MuscleGroup.rearDelts:
+        return Icons.accessibility;
+      case MuscleGroup.abs:
+      case MuscleGroup.obliques:
+        return Icons.self_improvement;
+      case MuscleGroup.traps:
+        return Icons.terrain;
+      default:
+        return Icons.fitness_center;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.fitness_center,
-              color: Theme.of(context).primaryColor,
+              color: AppColors.primaryRed,
               size: 28,
             ),
             const SizedBox(width: 8),
-            const Text('WORKOUTS'),
+            const Text(
+              'WORKOUTS',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
           ],
         ),
       ),
@@ -114,12 +159,12 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
         width: 200,
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFFDC2626), Color(0xFF991B1B)],
+            colors: [AppColors.primaryRed, AppColors.darkRed],
           ),
           borderRadius: BorderRadius.circular(32),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFDC2626).withOpacity(0.3),
+              color: AppColors.primaryRed.withOpacity(0.3),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -162,7 +207,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(
-          color: Color(0xFFDC2626),
+          color: AppColors.primaryRed,
         ),
       );
     }
@@ -178,15 +223,15 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFFDC2626).withOpacity(0.1),
-                    const Color(0xFF991B1B).withOpacity(0.05),
+                    AppColors.primaryRed.withOpacity(0.1),
+                    AppColors.darkRed.withOpacity(0.05),
                   ],
                 ),
               ),
               child: const Icon(
                 Icons.fitness_center,
                 size: 80,
-                color: Color(0xFFDC2626),
+                color: AppColors.primaryRed,
               ),
             ),
             const SizedBox(height: 24),
@@ -195,7 +240,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -203,7 +248,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
               'Start your first workout and crush your goals!',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey[400],
+                color: AppColors.textSecondary,
               ),
             ),
           ],
@@ -218,107 +263,88 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
         final workout = _workouts[index];
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFF1A1A1A),
-                const Color(0xFF1A1A1A).withOpacity(0.8),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFF333333),
-              width: 1,
-            ),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => WorkoutDetailsPage(workout: workout),
-                  ),
-                );
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDC2626).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.calendar_today,
-                        color: Theme.of(context).primaryColor,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            workout.name,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.access_time,
-                                size: 16,
-                                color: Colors.grey[400],
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _formatDuration(workout.duration),
-                                style: TextStyle(
-                                  color: Colors.grey[400],
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Icon(
-                                Icons.fitness_center,
-                                size: 16,
-                                color: Colors.grey[400],
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${workout.exercises.length} exercises',
-                                style: TextStyle(
-                                  color: Colors.grey[400],
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        color: Color(0xFF6B7280),
-                      ),
-                      onPressed: () => _deleteWorkout(workout.id),
-                    ),
-                  ],
+          child: GymCard(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => WorkoutDetailsPage(workout: workout),
                 ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryRed.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.calendar_today,
+                      color: AppColors.primaryRed,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          workout.name,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              size: 16,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _formatDuration(workout.duration),
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Icon(
+                              Icons.fitness_center,
+                              size: 16,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${workout.exercises.length} exercises',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: AppColors.textMuted,
+                    ),
+                    onPressed: () => _deleteWorkout(workout.id),
+                  ),
+                ],
               ),
             ),
           ),
@@ -331,8 +357,18 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Workout?'),
-        content: const Text('This action cannot be undone.'),
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text(
+          'Delete Workout?',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: const Text(
+          'This action cannot be undone.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -340,7 +376,10 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.warning),
+            ),
           ),
         ],
       ),
@@ -351,11 +390,17 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
         await _db.deleteWorkout(id);
         await _loadWorkouts();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Workout deleted')),
+          const SnackBar(
+            content: Text('Workout deleted'),
+            backgroundColor: AppColors.success,
+          ),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting workout: $e')),
+          SnackBar(
+            content: Text('Error deleting workout: $e'),
+            backgroundColor: AppColors.warning,
+          ),
         );
       }
     }
@@ -376,7 +421,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
               Container(
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: const Color(0xFFDC2626),
+                    color: AppColors.primaryRed,
                     width: 2,
                     style: BorderStyle.solid,
                   ),
@@ -391,12 +436,12 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: const [
-                      Icon(Icons.add, color: Color(0xFFDC2626)),
+                      Icon(Icons.add, color: AppColors.primaryRed),
                       SizedBox(width: 8),
                       Text(
                         'ADD EXERCISE',
                         style: TextStyle(
-                          color: Color(0xFFDC2626),
+                          color: AppColors.primaryRed,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.2,
                         ),
@@ -433,8 +478,8 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            const Color(0xFF1A1A1A),
-            const Color(0xFF1A1A1A).withOpacity(0),
+            AppColors.surface,
+            AppColors.surface.withOpacity(0),
           ],
         ),
       ),
@@ -445,10 +490,10 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFF0A0A0A),
+              color: AppColors.surfaceLight,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: const Color(0xFFDC2626).withOpacity(0.3),
+                color: AppColors.primaryRed.withOpacity(0.3),
                 width: 2,
               ),
             ),
@@ -462,7 +507,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                       'WORKOUT TIME',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[400],
+                        color: AppColors.textSecondary,
                         letterSpacing: 1.2,
                       ),
                     ),
@@ -472,7 +517,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                       style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ],
@@ -480,14 +525,14 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFDC2626).withOpacity(0.1),
+                    color: AppColors.primaryRed.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: ScaleTransition(
                     scale: _pulseAnimation,
                     child: const Icon(
                       Icons.timer,
-                      color: Color(0xFFDC2626),
+                      color: AppColors.primaryRed,
                       size: 32,
                     ),
                   ),
@@ -504,13 +549,13 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: _isRestTimerActive
-                        ? const Color(0xFFEF4444).withOpacity(0.1)
-                        : const Color(0xFF1A1A1A),
+                        ? AppColors.warning.withOpacity(0.1)
+                        : AppColors.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: _isRestTimerActive
-                          ? const Color(0xFFEF4444)
-                          : const Color(0xFF333333),
+                          ? AppColors.warning
+                          : AppColors.border,
                       width: 2,
                     ),
                   ),
@@ -523,8 +568,8 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                             Icons.pause_circle_filled,
                             size: 20,
                             color: _isRestTimerActive
-                                ? const Color(0xFFEF4444)
-                                : Colors.grey[600],
+                                ? AppColors.warning
+                                : AppColors.textMuted,
                           ),
                           const SizedBox(width: 8),
                           Text(
@@ -533,8 +578,8 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: _isRestTimerActive
-                                  ? const Color(0xFFEF4444)
-                                  : Colors.grey[600],
+                                  ? AppColors.warning
+                                  : AppColors.textMuted,
                               letterSpacing: 1.2,
                             ),
                           ),
@@ -546,7 +591,9 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: _isRestTimerActive ? Colors.white : Colors.grey[600],
+                          color: _isRestTimerActive
+                              ? AppColors.textPrimary
+                              : AppColors.textMuted,
                         ),
                       ),
                     ],
@@ -559,13 +606,13 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: _isSetTimerActive
-                        ? const Color(0xFF10B981).withOpacity(0.1)
-                        : const Color(0xFF1A1A1A),
+                        ? AppColors.success.withOpacity(0.1)
+                        : AppColors.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: _isSetTimerActive
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFF333333),
+                          ? AppColors.success
+                          : AppColors.border,
                       width: 2,
                     ),
                   ),
@@ -578,8 +625,8 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                             Icons.play_circle_filled,
                             size: 20,
                             color: _isSetTimerActive
-                                ? const Color(0xFF10B981)
-                                : Colors.grey[600],
+                                ? AppColors.success
+                                : AppColors.textMuted,
                           ),
                           const SizedBox(width: 8),
                           Text(
@@ -588,8 +635,8 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: _isSetTimerActive
-                                  ? const Color(0xFF10B981)
-                                  : Colors.grey[600],
+                                  ? AppColors.success
+                                  : AppColors.textMuted,
                               letterSpacing: 1.2,
                             ),
                           ),
@@ -601,7 +648,9 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: _isSetTimerActive ? Colors.white : Colors.grey[600],
+                          color: _isSetTimerActive
+                              ? AppColors.textPrimary
+                              : AppColors.textMuted,
                         ),
                       ),
                     ],
@@ -626,23 +675,23 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
           end: Alignment.bottomRight,
           colors: isActive
               ? [
-            const Color(0xFFDC2626).withOpacity(0.2),
-            const Color(0xFF991B1B).withOpacity(0.1),
+            AppColors.primaryRed.withOpacity(0.2),
+            AppColors.darkRed.withOpacity(0.1),
           ]
               : [
-            const Color(0xFF1A1A1A),
-            const Color(0xFF1A1A1A).withOpacity(0.8),
+            AppColors.surface,
+            AppColors.surface.withOpacity(0.8),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isActive ? const Color(0xFFDC2626) : const Color(0xFF333333),
+          color: isActive ? AppColors.primaryRed : AppColors.border,
           width: 2,
         ),
         boxShadow: isActive
             ? [
           BoxShadow(
-            color: const Color(0xFFDC2626).withOpacity(0.3),
+            color: AppColors.primaryRed.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -666,26 +715,12 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                           letterSpacing: 1.2,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDC2626).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          workoutExercise.exercise.muscleGroup,
-                          style: const TextStyle(
-                            color: Color(0xFFDC2626),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: 8),
+                      _buildMuscleGroupsDisplay(workoutExercise.exercise),
                     ],
                   ),
                 ),
@@ -693,11 +728,11 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981),
+                      color: AppColors.success,
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF10B981).withOpacity(0.3),
+                          color: AppColors.success.withOpacity(0.3),
                           blurRadius: 10,
                         ),
                       ],
@@ -719,7 +754,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0A0A0A),
+                  color: AppColors.surfaceLight,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -735,13 +770,13 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                             height: 32,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFDC2626).withOpacity(0.1),
+                              color: AppColors.primaryRed.withOpacity(0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Text(
                               '${setIndex + 1}',
                               style: const TextStyle(
-                                color: Color(0xFFDC2626),
+                                color: AppColors.primaryRed,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                               ),
@@ -752,7 +787,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                             child: Text(
                               '${set.weight} kg × ${set.reps} reps',
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: AppColors.textPrimary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -761,7 +796,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                           Text(
                             '${(set.weight * set.reps).toStringAsFixed(0)} kg',
                             style: TextStyle(
-                              color: Colors.grey[400],
+                              color: AppColors.textSecondary,
                               fontSize: 14,
                             ),
                           ),
@@ -783,13 +818,13 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                       gradient: isActive && _isSetTimerActive
                           ? LinearGradient(
                         colors: [
-                          Colors.grey[800]!,
-                          Colors.grey[700]!,
+                          AppColors.textMuted,
+                          AppColors.textMuted.withOpacity(0.8),
                         ],
                       )
                           : const LinearGradient(
                         colors: [
-                          Color(0xFF10B981),
+                          AppColors.success,
                           Color(0xFF059669),
                         ],
                       ),
@@ -797,7 +832,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                       boxShadow: isActive && !_isSetTimerActive
                           ? [
                         BoxShadow(
-                          color: const Color(0xFF10B981).withOpacity(0.3),
+                          color: AppColors.success.withOpacity(0.3),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -843,8 +878,8 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                       )
                           : LinearGradient(
                         colors: [
-                          Colors.grey[800]!,
-                          Colors.grey[700]!,
+                          AppColors.textMuted,
+                          AppColors.textMuted.withOpacity(0.8),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(12),
@@ -891,6 +926,66 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
     );
   }
 
+  Widget _buildMuscleGroupsDisplay(Exercise exercise) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: [
+        // Основная группа мышц
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 4,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.primaryRed.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppColors.primaryRed.withOpacity(0.3),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.star,
+                size: 14,
+                color: AppColors.primaryRed,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                exercise.primaryMuscle.russianName,
+                style: const TextStyle(
+                  color: AppColors.primaryRed,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Побочные группы мышц
+        ...exercise.secondaryMuscles.map((muscle) => Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 4,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.border,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            muscle.russianName,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 11,
+            ),
+          ),
+        )),
+      ],
+    );
+  }
+
   Widget _buildFinishButton() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -899,8 +994,8 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
           colors: [
-            const Color(0xFF0A0A0A),
-            const Color(0xFF0A0A0A).withOpacity(0),
+            AppColors.surfaceLight,
+            AppColors.surfaceLight.withOpacity(0),
           ],
         ),
       ),
@@ -909,14 +1004,14 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [
-              Color(0xFFEF4444),
-              Color(0xFFDC2626),
+              AppColors.warning,
+              AppColors.primaryRed,
             ],
           ),
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFDC2626).withOpacity(0.3),
+              color: AppColors.primaryRed.withOpacity(0.3),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -1005,65 +1100,16 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Exercise'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: exercises.length,
-            itemBuilder: (context, index) {
-              final exercise = exercises[index];
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0A0A0A),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFF333333),
-                  ),
-                ),
-                child: ListTile(
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDC2626).withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.fitness_center,
-                      color: Color(0xFFDC2626),
-                      size: 20,
-                    ),
-                  ),
-                  title: Text(
-                    exercise.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  subtitle: Text(
-                    exercise.muscleGroup,
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                    ),
-                  ),
-                  onTap: () {
-                    setState(() {
-                      _currentExercises.add(WorkoutExercise(
-                        exercise: exercise,
-                        sets: [],
-                      ));
-                    });
-                    Navigator.of(context).pop();
-                  },
-                ),
-              );
-            },
-          ),
-        ),
+      builder: (context) => _ExerciseSelectionDialog(
+        exercises: exercises,
+        onSelect: (exercise) {
+          setState(() {
+            _currentExercises.add(WorkoutExercise(
+              exercise: exercise,
+              sets: [],
+            ));
+          });
+        },
       ),
     );
   }
@@ -1071,7 +1117,10 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
   void _finishWorkout() async {
     if (_currentExercises.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add at least one exercise')),
+        const SnackBar(
+          content: Text('Add at least one exercise'),
+          backgroundColor: AppColors.warning,
+        ),
       );
       return;
     }
@@ -1103,11 +1152,17 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Workout saved!')),
+        const SnackBar(
+          content: Text('Workout saved!'),
+          backgroundColor: AppColors.success,
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving workout: $e')),
+        SnackBar(
+          content: Text('Error saving workout: $e'),
+          backgroundColor: AppColors.warning,
+        ),
       );
     }
   }
@@ -1163,155 +1218,141 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text(
-        'COMPLETE SET',
-        style: TextStyle(
-          letterSpacing: 1.2,
-          fontWeight: FontWeight.bold,
-        ),
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.lastWeight != null) ...[
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFFDC2626).withOpacity(0.2),
-                    const Color(0xFF991B1B).withOpacity(0.1),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: const Color(0xFFDC2626),
-                  width: 2,
-                ),
-              ),
-              child: InkWell(
-                onTap: () {
-                  widget.onComplete(widget.lastWeight!, widget.lastReps!);
-                  Navigator.of(context).pop();
-                },
-                borderRadius: BorderRadius.circular(16),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.refresh,
-                        color: Color(0xFFDC2626),
-                        size: 32,
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'SAME AS LAST SET',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFDC2626),
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${widget.lastWeight} kg × ${widget.lastReps} reps',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'COMPLETE SET',
+              style: TextStyle(
+                fontSize: 20,
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(child: Divider(color: Colors.grey[700])),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    'OR ENTER MANUALLY',
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 12,
-                      letterSpacing: 1.2,
+            const SizedBox(height: 24),
+            if (widget.lastWeight != null) ...[
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primaryRed.withOpacity(0.2),
+                      AppColors.darkRed.withOpacity(0.1),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.primaryRed,
+                    width: 2,
+                  ),
+                ),
+                child: InkWell(
+                  onTap: () {
+                    widget.onComplete(widget.lastWeight!, widget.lastReps!);
+                    Navigator.of(context).pop();
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.refresh,
+                          color: AppColors.primaryRed,
+                          size: 32,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'SAME AS LAST SET',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryRed,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${widget.lastWeight} kg × ${widget.lastReps} reps',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                Expanded(child: Divider(color: Colors.grey[700])),
-              ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: AppColors.border)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'OR ENTER MANUALLY',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: AppColors.border)),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+            GymTextField(
+              controller: _weightController,
+              hintText: 'Weight (kg)',
+              prefixIcon: Icons.fitness_center,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
             ),
             const SizedBox(height: 16),
-          ],
-          TextField(
-            controller: _weightController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+            GymTextField(
+              controller: _repsController,
+              hintText: 'Reps',
+              prefixIcon: Icons.repeat,
+              keyboardType: TextInputType.number,
             ),
-            decoration: InputDecoration(
-              labelText: 'Weight (kg)',
-              prefixIcon: const Icon(Icons.fitness_center, color: Color(0xFFDC2626)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _repsController,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-            decoration: InputDecoration(
-              labelText: 'Reps',
-              prefixIcon: const Icon(Icons.repeat, color: Color(0xFFDC2626)),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('CANCEL'),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFDC2626), Color(0xFF991B1B)],
-            ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: MaterialButton(
-            onPressed: () {
-              final weight = double.tryParse(_weightController.text) ?? 0;
-              final reps = int.tryParse(_repsController.text) ?? 0;
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlineButton(
+                    text: 'Cancel',
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: GradientButton(
+                    text: 'Save',
+                    onPressed: () {
+                      final weight = double.tryParse(_weightController.text) ?? 0;
+                      final reps = int.tryParse(_repsController.text) ?? 0;
 
-              if (weight > 0 && reps > 0) {
-                widget.onComplete(weight, reps);
-                Navigator.of(context).pop();
-              }
-            },
-            child: const Text(
-              'SAVE',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+                      if (weight > 0 && reps > 0) {
+                        widget.onComplete(weight, reps);
+                        Navigator.of(context).pop();
+                      }
+                    },
+                  ),
+                ),
+              ],
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -1320,5 +1361,376 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
     _weightController.dispose();
     _repsController.dispose();
     super.dispose();
+  }
+}
+
+// Exercise Selection Dialog with Search
+class _ExerciseSelectionDialog extends StatefulWidget {
+  final List<Exercise> exercises;
+  final Function(Exercise) onSelect;
+
+  const _ExerciseSelectionDialog({
+    Key? key,
+    required this.exercises,
+    required this.onSelect,
+  }) : super(key: key);
+
+  @override
+  State<_ExerciseSelectionDialog> createState() => _ExerciseSelectionDialogState();
+}
+
+class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  MuscleGroup? _selectedMuscleFilter;
+
+  List<Exercise> get _filteredExercises {
+    return widget.exercises.where((exercise) {
+      final matchesSearch = exercise.name.toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesMuscle = _selectedMuscleFilter == null ||
+          exercise.primaryMuscle == _selectedMuscleFilter ||
+          exercise.secondaryMuscles.contains(_selectedMuscleFilter);
+      return matchesSearch && matchesMuscle;
+    }).toList();
+  }
+
+  // Get unique muscle groups from exercises
+  List<MuscleGroup> get _availableMuscleGroups {
+    final groups = <MuscleGroup>{};
+    for (final exercise in widget.exercises) {
+      groups.add(exercise.primaryMuscle);
+      groups.addAll(exercise.secondaryMuscles);
+    }
+    return groups.toList()..sort((a, b) => a.russianName.compareTo(b.russianName));
+  }
+
+  IconData _getMuscleGroupIcon(MuscleGroup muscle) {
+    switch (muscle) {
+      case MuscleGroup.chest:
+        return Icons.airline_seat_flat;
+      case MuscleGroup.back:
+      case MuscleGroup.lats:
+      case MuscleGroup.middleBack:
+      case MuscleGroup.lowerBack:
+        return Icons.accessibility_new;
+      case MuscleGroup.biceps:
+      case MuscleGroup.triceps:
+      case MuscleGroup.forearms:
+        return Icons.fitness_center;
+      case MuscleGroup.quadriceps:
+      case MuscleGroup.hamstrings:
+      case MuscleGroup.glutes:
+      case MuscleGroup.calves:
+        return Icons.directions_run;
+      case MuscleGroup.shoulders:
+      case MuscleGroup.frontDelts:
+      case MuscleGroup.sideDelts:
+      case MuscleGroup.rearDelts:
+        return Icons.accessibility;
+      case MuscleGroup.abs:
+      case MuscleGroup.obliques:
+        return Icons.self_improvement;
+      case MuscleGroup.traps:
+        return Icons.terrain;
+      default:
+        return Icons.fitness_center;
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Container(
+        constraints: const BoxConstraints(maxHeight: 700, maxWidth: 500),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primaryRed.withOpacity(0.1),
+                    AppColors.darkRed.withOpacity(0.05),
+                  ],
+                ),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.fitness_center,
+                        color: AppColors.primaryRed,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'SELECT EXERCISE',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Search Field
+                  TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                    },
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 16,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Search exercises...',
+                      hintStyle: TextStyle(
+                        color: AppColors.textMuted,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: AppColors.textSecondary,
+                      ),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                        icon: const Icon(Icons.clear, color: AppColors.textSecondary),
+                        onPressed: () {
+                          setState(() {
+                            _searchController.clear();
+                            _searchQuery = '';
+                          });
+                        },
+                      )
+                          : null,
+                      filled: true,
+                      fillColor: AppColors.surfaceLight,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primaryRed, width: 2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Muscle Group Filter
+            Container(
+              height: 50,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _availableMuscleGroups.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    // All muscles chip
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: const Text('All'),
+                        selected: _selectedMuscleFilter == null,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedMuscleFilter = null;
+                          });
+                        },
+                        backgroundColor: AppColors.surface,
+                        selectedColor: AppColors.primaryRed.withOpacity(0.2),
+                        checkmarkColor: AppColors.primaryRed,
+                        labelStyle: TextStyle(
+                          color: _selectedMuscleFilter == null
+                              ? AppColors.primaryRed
+                              : AppColors.textSecondary,
+                          fontWeight: _selectedMuscleFilter == null
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                        side: BorderSide(
+                          color: _selectedMuscleFilter == null
+                              ? AppColors.primaryRed
+                              : AppColors.border,
+                        ),
+                      ),
+                    );
+                  }
+
+                  final muscle = _availableMuscleGroups[index - 1];
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(muscle.russianName),
+                      selected: _selectedMuscleFilter == muscle,
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedMuscleFilter = selected ? muscle : null;
+                        });
+                      },
+                      backgroundColor: AppColors.surface,
+                      selectedColor: AppColors.primaryRed.withOpacity(0.2),
+                      checkmarkColor: AppColors.primaryRed,
+                      labelStyle: TextStyle(
+                        color: _selectedMuscleFilter == muscle
+                            ? AppColors.primaryRed
+                            : AppColors.textSecondary,
+                        fontWeight: _selectedMuscleFilter == muscle
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                      side: BorderSide(
+                        color: _selectedMuscleFilter == muscle
+                            ? AppColors.primaryRed
+                            : AppColors.border,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const Divider(color: AppColors.border, height: 1),
+            // Exercise List
+            Flexible(
+              child: _filteredExercises.isEmpty
+                  ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.search_off,
+                      size: 64,
+                      color: AppColors.textMuted,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No exercises found',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Try different search terms',
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+                  : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _filteredExercises.length,
+                itemBuilder: (context, index) {
+                  final exercise = _filteredExercises[index];
+                  final isCustom = exercise.id.length > 10;
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: GymCard(
+                      onTap: () {
+                        widget.onSelect(exercise);
+                        Navigator.of(context).pop();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: isCustom
+                                    ? AppColors.orange.withOpacity(0.1)
+                                    : AppColors.primaryRed.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                isCustom
+                                    ? Icons.person
+                                    : _getMuscleGroupIcon(exercise.primaryMuscle),
+                                color: isCustom
+                                    ? AppColors.orange
+                                    : AppColors.primaryRed,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    exercise.name,
+                                    style: const TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    exercise.muscleGroupsDisplay,
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.add_circle_outline,
+                              color: AppColors.primaryRed,
+                              size: 24,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

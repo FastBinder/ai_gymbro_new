@@ -23,18 +23,20 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // Увеличиваем версию для миграции
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
   }
 
   Future<void> _createDB(Database db, int version) async {
-    // Create exercises table
+    // Create exercises table with new structure
     await db.execute('''
       CREATE TABLE exercises(
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
-        muscleGroup TEXT NOT NULL,
+        primaryMuscle TEXT NOT NULL,
+        secondaryMuscles TEXT,
         description TEXT NOT NULL,
         imageUrl TEXT,
         videoUrl TEXT,
@@ -82,16 +84,83 @@ class DatabaseService {
     await _insertDefaultExercises(db);
   }
 
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion == 1 && newVersion == 2) {
+      // Миграция с версии 1 на версию 2
+      await db.transaction((txn) async {
+        // Создаем временную таблицу с новой структурой
+        await txn.execute('''
+          CREATE TABLE exercises_new(
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            primaryMuscle TEXT NOT NULL,
+            secondaryMuscles TEXT,
+            description TEXT NOT NULL,
+            imageUrl TEXT,
+            videoUrl TEXT,
+            instructions TEXT,
+            tips TEXT,
+            isCustom INTEGER DEFAULT 0
+          )
+        ''');
+
+        // Копируем данные из старой таблицы
+        final exercises = await txn.query('exercises');
+        for (final exercise in exercises) {
+          // Мапим старые группы мышц на новые enum значения
+          String primaryMuscle = _mapOldMuscleGroupToEnum(exercise['muscleGroup'] as String);
+
+          await txn.insert('exercises_new', {
+            'id': exercise['id'],
+            'name': exercise['name'],
+            'primaryMuscle': primaryMuscle,
+            'secondaryMuscles': '', // Пустая строка для старых данных
+            'description': exercise['description'],
+            'imageUrl': exercise['imageUrl'],
+            'videoUrl': exercise['videoUrl'],
+            'instructions': exercise['instructions'],
+            'tips': exercise['tips'],
+            'isCustom': exercise['isCustom'] ?? 0,
+          });
+        }
+
+        // Удаляем старую таблицу и переименовываем новую
+        await txn.execute('DROP TABLE exercises');
+        await txn.execute('ALTER TABLE exercises_new RENAME TO exercises');
+      });
+    }
+  }
+
+  String _mapOldMuscleGroupToEnum(String oldMuscleGroup) {
+    // Мапинг старых названий групп мышц на новые enum значения
+    final mapping = {
+      'Chest': 'chest',
+      'Back': 'back',
+      'Legs': 'quadriceps', // По умолчанию для ног используем квадрицепс
+      'Shoulders': 'shoulders',
+      'Arms': 'biceps', // По умолчанию для рук используем бицепс
+      'Core': 'abs',
+      'Full Body': 'chest', // Временное решение
+      'Cardio': 'abs', // Временное решение
+      'Other': 'chest', // Временное решение
+    };
+
+    return mapping[oldMuscleGroup] ?? 'chest';
+  }
+
   Future<void> _insertDefaultExercises(Database db) async {
     for (var exercise in ExerciseDatabase.exercises) {
-      await db.insert('exercises', exercise.toMap());
+      await db.insert('exercises', {
+        ...exercise.toMap(),
+        'isCustom': 0,
+      });
     }
   }
 
   // Exercise methods
   Future<List<Exercise>> getAllExercises() async {
     final db = await database;
-    final result = await db.query('exercises', orderBy: 'muscleGroup, name');
+    final result = await db.query('exercises', orderBy: 'primaryMuscle, name');
     return result.map((map) => Exercise.fromMap(map)).toList();
   }
 
@@ -115,8 +184,11 @@ class DatabaseService {
     final customExercise = Exercise(
       id: id,
       name: exercise.name,
-      muscleGroup: exercise.muscleGroup,
+      primaryMuscle: exercise.primaryMuscle,
+      secondaryMuscles: exercise.secondaryMuscles,
       description: exercise.description,
+      instructions: exercise.instructions,
+      tips: exercise.tips,
     );
 
     await db.insert('exercises', {
@@ -125,6 +197,33 @@ class DatabaseService {
     });
 
     return id;
+  }
+
+  Future<void> deleteExercise(String id) async {
+    final db = await database;
+
+    // Check if exercise is used in any workouts
+    final usageCount = Sqflite.firstIntValue(
+      await db.rawQuery(
+        'SELECT COUNT(*) FROM workout_exercises WHERE exerciseId = ?',
+        [id],
+      ),
+    ) ?? 0;
+
+    if (usageCount > 0) {
+      throw Exception('Cannot delete exercise that is used in workouts');
+    }
+
+    // Delete only if it's a custom exercise
+    final result = await db.delete(
+      'exercises',
+      where: 'id = ? AND isCustom = 1',
+      whereArgs: [id],
+    );
+
+    if (result == 0) {
+      throw Exception('Cannot delete built-in exercises');
+    }
   }
 
   // Workout methods
@@ -314,31 +413,4 @@ class DatabaseService {
     final db = await database;
     db.close();
   }
-  Future<void> deleteExercise(String id) async {
-    final db = await instance.database;
-
-    // Check if exercise is used in any workouts
-    final usageCount = Sqflite.firstIntValue(
-      await db.rawQuery(
-        'SELECT COUNT(*) FROM workout_exercises WHERE exerciseId = ?',
-        [id],
-      ),
-    ) ?? 0;
-
-    if (usageCount > 0) {
-      throw Exception('Cannot delete exercise that is used in workouts');
-    }
-
-    // Delete only if it's a custom exercise
-    final result = await db.delete(
-      'exercises',
-      where: 'id = ? AND isCustom = 1',
-      whereArgs: [id],
-    );
-
-    if (result == 0) {
-      throw Exception('Cannot delete built-in exercises');
-    }
-  }
 }
-

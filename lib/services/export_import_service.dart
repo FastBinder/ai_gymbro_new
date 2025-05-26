@@ -23,7 +23,7 @@ class ExportImportService {
 
       // Создаем JSON структуру
       final exportData = {
-        'version': 1,
+        'version': 2, // Увеличиваем версию для новой структуры
         'exportDate': DateTime.now().toIso8601String(),
         'workouts': workouts.map((w) => _workoutToJson(w)).toList(),
         'customExercises': customExercises.map((e) => _exerciseToJson(e)).toList(),
@@ -56,14 +56,12 @@ class ExportImportService {
       final data = json.decode(jsonString);
 
       // Проверяем версию
-      if (data['version'] != 1) {
-        throw Exception('Unsupported backup version');
-      }
+      final version = data['version'] ?? 1;
 
       // Импортируем кастомные упражнения
       if (data['customExercises'] != null) {
         for (var exerciseJson in data['customExercises']) {
-          final exercise = _exerciseFromJson(exerciseJson);
+          final exercise = _exerciseFromJson(exerciseJson, version);
           // Проверяем, существует ли уже
           final existing = await _db.getAllExercises();
           if (!existing.any((e) => e.id == exercise.id)) {
@@ -75,7 +73,7 @@ class ExportImportService {
       // Импортируем тренировки
       if (data['workouts'] != null) {
         for (var workoutJson in data['workouts']) {
-          final workout = _workoutFromJson(workoutJson);
+          final workout = await _workoutFromJson(workoutJson, version);
           // Проверяем, существует ли уже
           final existing = await _db.getAllWorkouts();
           if (!existing.any((w) => w.id == workout.id)) {
@@ -98,7 +96,8 @@ class ExportImportService {
       'exercises': workout.exercises.map((e) => {
         'exerciseId': e.exercise.id,
         'exerciseName': e.exercise.name,
-        'exerciseMuscleGroup': e.exercise.muscleGroup,
+        'exercisePrimaryMuscle': e.exercise.primaryMuscle.name,
+        'exerciseSecondaryMuscles': e.exercise.secondaryMuscles.map((m) => m.name).toList(),
         'exerciseDescription': e.exercise.description,
         'sets': e.sets.map((s) => {
           'weight': s.weight,
@@ -110,29 +109,58 @@ class ExportImportService {
   }
 
   // Конвертация JSON в Workout
-  static Workout _workoutFromJson(Map<String, dynamic> json) {
+  static Future<Workout> _workoutFromJson(Map<String, dynamic> json, int version) async {
+    final exercisesList = <WorkoutExercise>[];
+
+    for (var e in json['exercises']) {
+      Exercise? exercise;
+
+      // Сначала пытаемся найти упражнение в БД
+      if (e['exerciseId'] != null) {
+        exercise = await _db.getExercise(e['exerciseId']);
+      }
+
+      // Если не нашли, создаем из данных в JSON
+      if (exercise == null) {
+        if (version == 2) {
+          // Новая версия с primaryMuscle и secondaryMuscles
+          exercise = Exercise(
+            id: e['exerciseId'],
+            name: e['exerciseName'],
+            primaryMuscle: MuscleGroup.fromString(e['exercisePrimaryMuscle']),
+            secondaryMuscles: (e['exerciseSecondaryMuscles'] as List?)
+                ?.map((m) => MuscleGroup.fromString(m))
+                .toList() ?? [],
+            description: e['exerciseDescription'],
+          );
+        } else {
+          // Старая версия с muscleGroup
+          exercise = Exercise(
+            id: e['exerciseId'],
+            name: e['exerciseName'],
+            primaryMuscle: _mapOldMuscleGroupToEnum(e['exerciseMuscleGroup']),
+            secondaryMuscles: [],
+            description: e['exerciseDescription'],
+          );
+        }
+      }
+
+      exercisesList.add(WorkoutExercise(
+        exercise: exercise,
+        sets: (e['sets'] as List).map((s) => WorkoutSet(
+          weight: s['weight'].toDouble(),
+          reps: s['reps'],
+          timestamp: DateTime.parse(s['timestamp']),
+        )).toList(),
+      ));
+    }
+
     return Workout(
       id: json['id'],
       name: json['name'],
       date: DateTime.parse(json['date']),
       duration: Duration(seconds: json['duration']),
-      exercises: (json['exercises'] as List).map((e) {
-        final exercise = Exercise(
-          id: e['exerciseId'],
-          name: e['exerciseName'],
-          muscleGroup: e['exerciseMuscleGroup'],
-          description: e['exerciseDescription'],
-        );
-
-        return WorkoutExercise(
-          exercise: exercise,
-          sets: (e['sets'] as List).map((s) => WorkoutSet(
-            weight: s['weight'].toDouble(),
-            reps: s['reps'],
-            timestamp: DateTime.parse(s['timestamp']),
-          )).toList(),
-        );
-      }).toList(),
+      exercises: exercisesList,
     );
   }
 
@@ -141,7 +169,8 @@ class ExportImportService {
     return {
       'id': exercise.id,
       'name': exercise.name,
-      'muscleGroup': exercise.muscleGroup,
+      'primaryMuscle': exercise.primaryMuscle.name,
+      'secondaryMuscles': exercise.secondaryMuscles.map((m) => m.name).toList(),
       'description': exercise.description,
       'instructions': exercise.instructions,
       'tips': exercise.tips,
@@ -149,19 +178,57 @@ class ExportImportService {
   }
 
   // Конвертация JSON в Exercise
-  static Exercise _exerciseFromJson(Map<String, dynamic> json) {
-    return Exercise(
-      id: json['id'],
-      name: json['name'],
-      muscleGroup: json['muscleGroup'],
-      description: json['description'],
-      instructions: json['instructions'] != null
-          ? List<String>.from(json['instructions'])
-          : null,
-      tips: json['tips'] != null
-          ? List<String>.from(json['tips'])
-          : null,
-    );
+  static Exercise _exerciseFromJson(Map<String, dynamic> json, int version) {
+    if (version == 2) {
+      // Новая версия с primaryMuscle и secondaryMuscles
+      return Exercise(
+        id: json['id'],
+        name: json['name'],
+        primaryMuscle: MuscleGroup.fromString(json['primaryMuscle']),
+        secondaryMuscles: (json['secondaryMuscles'] as List?)
+            ?.map((m) => MuscleGroup.fromString(m))
+            .toList() ?? [],
+        description: json['description'],
+        instructions: json['instructions'] != null
+            ? List<String>.from(json['instructions'])
+            : null,
+        tips: json['tips'] != null
+            ? List<String>.from(json['tips'])
+            : null,
+      );
+    } else {
+      // Старая версия с muscleGroup
+      return Exercise(
+        id: json['id'],
+        name: json['name'],
+        primaryMuscle: _mapOldMuscleGroupToEnum(json['muscleGroup']),
+        secondaryMuscles: [],
+        description: json['description'],
+        instructions: json['instructions'] != null
+            ? List<String>.from(json['instructions'])
+            : null,
+        tips: json['tips'] != null
+            ? List<String>.from(json['tips'])
+            : null,
+      );
+    }
+  }
+
+  // Мапинг старых групп мышц на новые
+  static MuscleGroup _mapOldMuscleGroupToEnum(String oldMuscleGroup) {
+    final mapping = {
+      'Chest': MuscleGroup.chest,
+      'Back': MuscleGroup.back,
+      'Legs': MuscleGroup.quadriceps,
+      'Shoulders': MuscleGroup.shoulders,
+      'Arms': MuscleGroup.biceps,
+      'Core': MuscleGroup.abs,
+      'Full Body': MuscleGroup.chest,
+      'Cardio': MuscleGroup.abs,
+      'Other': MuscleGroup.chest,
+    };
+
+    return mapping[oldMuscleGroup] ?? MuscleGroup.chest;
   }
 
   // Получить размер данных

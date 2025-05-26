@@ -16,9 +16,10 @@ class ExercisesPage extends StatefulWidget {
 class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateMixin {
   final DatabaseService _db = DatabaseService.instance;
   List<Exercise> _exercises = [];
-  String _selectedMuscleGroup = 'All';
+  MuscleGroup? _selectedMuscleGroup;
   String _searchQuery = '';
   bool _isLoading = true;
+  bool _showSecondaryMuscles = false;
 
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
@@ -61,36 +62,57 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
     }
   }
 
-  List<String> get _muscleGroups {
-    final groups = _exercises.map((e) => e.muscleGroup).toSet().toList();
-    groups.sort();
-    return ['All', ...groups];
+  List<MuscleGroup> get _availableMuscleGroups {
+    final groups = <MuscleGroup>{};
+    for (final exercise in _exercises) {
+      groups.add(exercise.primaryMuscle);
+      if (_showSecondaryMuscles) {
+        groups.addAll(exercise.secondaryMuscles);
+      }
+    }
+    return groups.toList()..sort((a, b) => a.russianName.compareTo(b.russianName));
   }
 
   List<Exercise> get _filteredExercises {
     return _exercises.where((exercise) {
-      final matchesMuscleGroup = _selectedMuscleGroup == 'All' ||
-          exercise.muscleGroup == _selectedMuscleGroup;
+      final matchesMuscleGroup = _selectedMuscleGroup == null ||
+          (_showSecondaryMuscles
+              ? exercise.involvesMuscle(_selectedMuscleGroup!)
+              : exercise.primaryMuscle == _selectedMuscleGroup);
       final matchesSearch = exercise.name.toLowerCase().contains(_searchQuery.toLowerCase());
       return matchesMuscleGroup && matchesSearch;
     }).toList();
   }
 
   // Иконки для групп мышц
-  IconData _getMuscleGroupIcon(String muscleGroup) {
-    switch (muscleGroup.toLowerCase()) {
-      case 'chest':
+  IconData _getMuscleGroupIcon(MuscleGroup muscleGroup) {
+    switch (muscleGroup) {
+      case MuscleGroup.chest:
         return Icons.airline_seat_flat;
-      case 'back':
+      case MuscleGroup.back:
+      case MuscleGroup.lats:
+      case MuscleGroup.middleBack:
+      case MuscleGroup.lowerBack:
         return Icons.accessibility_new;
-      case 'arms':
+      case MuscleGroup.biceps:
+      case MuscleGroup.triceps:
+      case MuscleGroup.forearms:
         return Icons.fitness_center;
-      case 'legs':
+      case MuscleGroup.quadriceps:
+      case MuscleGroup.hamstrings:
+      case MuscleGroup.glutes:
+      case MuscleGroup.calves:
         return Icons.directions_run;
-      case 'shoulders':
+      case MuscleGroup.shoulders:
+      case MuscleGroup.frontDelts:
+      case MuscleGroup.sideDelts:
+      case MuscleGroup.rearDelts:
         return Icons.accessibility;
-      case 'core':
+      case MuscleGroup.abs:
+      case MuscleGroup.obliques:
         return Icons.self_improvement;
+      case MuscleGroup.traps:
+        return Icons.terrain;
       default:
         return Icons.fitness_center;
     }
@@ -210,23 +232,86 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
               });
             },
           ),
+          const SizedBox(height: 12),
+          // Переключатель для показа побочных мышц
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _showSecondaryMuscles ? Icons.visibility : Icons.visibility_off,
+                  size: 20,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Show secondary muscles',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Switch(
+                  value: _showSecondaryMuscles,
+                  onChanged: (value) {
+                    setState(() {
+                      _showSecondaryMuscles = value;
+                      if (!value && _selectedMuscleGroup != null) {
+                        // Проверяем, есть ли выбранная группа в основных
+                        final hasPrimary = _exercises.any(
+                                (e) => e.primaryMuscle == _selectedMuscleGroup
+                        );
+                        if (!hasPrimary) {
+                          _selectedMuscleGroup = null;
+                        }
+                      }
+                    });
+                  },
+                  activeColor: AppColors.primaryRed,
+                  inactiveThumbColor: AppColors.textMuted,
+                  inactiveTrackColor: AppColors.border,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildMuscleGroupFilter() {
+    final groups = _availableMuscleGroups;
+
     return Container(
       height: 50,
       margin: const EdgeInsets.only(bottom: 16),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: _muscleGroups.length,
+        itemCount: groups.length + 1,
         itemBuilder: (context, index) {
-          final group = _muscleGroups[index];
+          if (index == 0) {
+            return CategoryChip(
+              label: 'All',
+              isSelected: _selectedMuscleGroup == null,
+              onTap: () {
+                setState(() {
+                  _selectedMuscleGroup = null;
+                });
+              },
+            );
+          }
+
+          final group = groups[index - 1];
           return CategoryChip(
-            label: group,
+            label: group.russianName,
             isSelected: group == _selectedMuscleGroup,
             onTap: () {
               setState(() {
@@ -265,7 +350,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Icon(
-                    isCustom ? Icons.person : _getMuscleGroupIcon(exercise.muscleGroup),
+                    isCustom ? Icons.person : _getMuscleGroupIcon(exercise.primaryMuscle),
                     color: isCustom ? AppColors.orange : AppColors.primaryRed,
                     size: 28,
                   ),
@@ -314,7 +399,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        exercise.muscleGroup,
+                        exercise.muscleGroupsDisplay,
                         style: const TextStyle(
                           fontSize: 14,
                           color: AppColors.textSecondary,
@@ -410,7 +495,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Icon(
-                            isCustom ? Icons.person : _getMuscleGroupIcon(exercise.muscleGroup),
+                            isCustom ? Icons.person : _getMuscleGroupIcon(exercise.primaryMuscle),
                             color: isCustom ? AppColors.orange : AppColors.primaryRed,
                             size: 32,
                           ),
@@ -454,25 +539,8 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                                     ),
                                 ],
                               ),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryRed.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  exercise.muscleGroup,
-                                  style: const TextStyle(
-                                    color: AppColors.primaryRed,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
+                              const SizedBox(height: 8),
+                              _buildMuscleGroupsDisplay(exercise),
                             ],
                           ),
                         ),
@@ -663,6 +731,66 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMuscleGroupsDisplay(Exercise exercise) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        // Основная группа мышц
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 4,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.primaryRed.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.primaryRed.withOpacity(0.3),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.star,
+                size: 14,
+                color: AppColors.primaryRed,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                exercise.primaryMuscle.russianName,
+                style: const TextStyle(
+                  color: AppColors.primaryRed,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Побочные группы мышц
+        ...exercise.secondaryMuscles.map((muscle) => Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 4,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.border,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            muscle.russianName,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+        )),
+      ],
     );
   }
 
