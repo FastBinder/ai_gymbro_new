@@ -2,27 +2,31 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'screens/workout_page.dart';
 import 'screens/exercises_page.dart';
 import 'screens/progress_page.dart';
 import 'screens/profile_page.dart';
+import 'services/localization_service.dart';
 
-void main() {
-  // Set system UI overlay style
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Color(0xFF0A0A0A),
-      systemNavigationBarIconBrightness: Brightness.light,
-    ),
-  );
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
+  // Настройка системного UI
   SystemChrome.setEnabledSystemUIMode(
     SystemUiMode.edgeToEdge,
   );
 
-  runApp(const GymTrackerApp());
+  // Инициализация локализации
+  final localizationService = LocalizationService();
+  await localizationService.loadLanguage();
+
+  runApp(
+    ChangeNotifierProvider.value(
+      value: localizationService,
+      child: const GymTrackerApp(),
+    ),
+  );
 }
 
 class GymTrackerApp extends StatelessWidget {
@@ -202,6 +206,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    // Получаем локализацию
+    final loc = context.watch<LocalizationService>();
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -242,26 +249,26 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           selectedIndex: _selectedIndex,
           onDestinationSelected: _onDestinationSelected,
           height: 80,
-          destinations: const [
+          destinations: [
             NavigationDestination(
-              icon: Icon(Icons.fitness_center_outlined),
-              selectedIcon: Icon(Icons.fitness_center),
-              label: 'Workout',
+              icon: const Icon(Icons.fitness_center_outlined),
+              selectedIcon: const Icon(Icons.fitness_center),
+              label: loc.get('nav_workout'),
             ),
             NavigationDestination(
-              icon: Icon(Icons.list_outlined),
-              selectedIcon: Icon(Icons.list),
-              label: 'Exercises',
+              icon: const Icon(Icons.list_outlined),
+              selectedIcon: const Icon(Icons.list),
+              label: loc.get('nav_exercises'),
             ),
             NavigationDestination(
-              icon: Icon(Icons.analytics_outlined),
-              selectedIcon: Icon(Icons.analytics),
-              label: 'Progress',
+              icon: const Icon(Icons.analytics_outlined),
+              selectedIcon: const Icon(Icons.analytics),
+              label: loc.get('nav_progress'),
             ),
             NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Profile',
+              icon: const Icon(Icons.person_outline),
+              selectedIcon: const Icon(Icons.person),
+              label: loc.get('nav_profile'),
             ),
           ],
         ),
