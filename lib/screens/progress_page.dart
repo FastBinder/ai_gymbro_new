@@ -1122,16 +1122,6 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   }
 }
 
-// Добавляем метод getFormatted в LocalizationService extension
-extension LocalizationServiceExtension on LocalizationService {
-  String getFormatted(String key, Map<String, dynamic> params) {
-    String text = get(key);
-    params.forEach((paramKey, paramValue) {
-      text = text.replaceAll('{$paramKey}', paramValue.toString());
-    });
-    return text;
-  }
-}
 
 class MuscleStats {
   double sets = 0; // Changed from int to double

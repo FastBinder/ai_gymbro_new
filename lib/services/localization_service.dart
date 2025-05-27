@@ -181,7 +181,7 @@ class LocalizationService extends ChangeNotifier {
       'workout_time': 'ВРЕМЯ ТРЕНИРОВКИ',
       'rest': 'ОТДЫХ',
       'set': 'ПОДХОД',
-      'start_set': 'НАЧАТЬ ПОДХОД',
+      'start_set': 'НАЧАТЬ',
       'complete': 'ЗАВЕРШИТЬ',
       'active': 'АКТИВНО',
       'complete_set': 'ЗАВЕРШИТЬ ПОДХОД',
@@ -298,4 +298,13 @@ class LocalizationService extends ChangeNotifier {
       'muscle_rear_delts': 'Задние дельты',
     },
   };
+}
+extension LocalizationServiceExtension on LocalizationService {
+  String getFormatted(String key, Map<String, dynamic> params) {
+    String text = get(key);
+    params.forEach((paramKey, paramValue) {
+      text = text.replaceAll('{$paramKey}', paramValue.toString());
+    });
+    return text;
+  }
 }

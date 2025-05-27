@@ -1,8 +1,10 @@
 // lib/screens/exercises_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/exercise.dart';
 import '../services/database_service.dart';
+import '../services/localization_service.dart';
 import '../widgets/add_custom_exercise_dialog.dart';
 import '../widgets/custom_widgets.dart';
 
@@ -62,7 +64,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
     }
   }
 
-  List<MuscleGroup> get _availableMuscleGroups {
+  List<MuscleGroup> _getAvailableMuscleGroups(LocalizationService loc) {
     final groups = <MuscleGroup>{};
     for (final exercise in _exercises) {
       groups.add(exercise.primaryMuscle);
@@ -70,7 +72,16 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
         groups.addAll(exercise.secondaryMuscles);
       }
     }
-    return groups.toList()..sort((a, b) => a.russianName.compareTo(b.russianName));
+
+    // Сортируем по локализованным названиям
+    final groupsList = groups.toList();
+    groupsList.sort((a, b) {
+      final aName = loc.get(a.localizationKey);
+      final bName = loc.get(b.localizationKey);
+      return aName.compareTo(bName);
+    });
+
+    return groupsList;
   }
 
   List<Exercise> get _filteredExercises {
@@ -118,8 +129,21 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
     }
   }
 
+  String _getLocalizedMuscleGroupsDisplay(Exercise exercise, LocalizationService loc) {
+    final primary = loc.get(exercise.primaryMuscle.localizationKey);
+    if (exercise.secondaryMuscles.isEmpty) {
+      return primary;
+    }
+    final secondary = exercise.secondaryMuscles
+        .map((m) => loc.get(m.localizationKey))
+        .join(', ');
+    return '$primary ($secondary)';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -139,10 +163,10 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                 child: _filteredExercises.isEmpty
                     ? EmptyState(
                   icon: Icons.search_off,
-                  title: 'No exercises found',
-                  subtitle: 'Try different filters or add a custom exercise',
+                  title: loc.get('no_exercises_found'),
+                  subtitle: loc.get('try_different_filters'),
                   action: GradientButton(
-                    text: 'Add Exercise',
+                    text: loc.get('add_custom_exercise'),
                     icon: Icons.add,
                     onPressed: _addCustomExercise,
                     width: 200,
@@ -188,6 +212,8 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
   }
 
   Widget _buildHeader() {
+    final loc = context.watch<LocalizationService>();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -211,9 +237,9 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                 size: 32,
               ),
               const SizedBox(width: 12),
-              const Text(
-                'EXERCISES',
-                style: TextStyle(
+              Text(
+                loc.get('nav_exercises'),
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.5,
@@ -224,7 +250,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
           ),
           const SizedBox(height: 20),
           GymTextField(
-            hintText: 'Search exercises...',
+            hintText: loc.get('search_exercises'),
             prefixIcon: Icons.search,
             onChanged: (value) {
               setState(() {
@@ -251,7 +277,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Show secondary muscles',
+                  loc.get('show_secondary_muscles'),
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 14,
@@ -287,7 +313,8 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
   }
 
   Widget _buildMuscleGroupFilter() {
-    final groups = _availableMuscleGroups;
+    final loc = context.watch<LocalizationService>();
+    final groups = _getAvailableMuscleGroups(loc);
 
     return Container(
       height: 50,
@@ -299,7 +326,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
         itemBuilder: (context, index) {
           if (index == 0) {
             return CategoryChip(
-              label: 'All',
+              label: loc.get('all'),
               isSelected: _selectedMuscleGroup == null,
               onTap: () {
                 setState(() {
@@ -311,7 +338,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
 
           final group = groups[index - 1];
           return CategoryChip(
-            label: group.russianName,
+            label: loc.get(group.localizationKey),
             isSelected: group == _selectedMuscleGroup,
             onTap: () {
               setState(() {
@@ -325,6 +352,8 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
   }
 
   Widget _buildExercisesList() {
+    final loc = context.watch<LocalizationService>();
+
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
       itemCount: _filteredExercises.length,
@@ -385,9 +414,9 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                                   color: AppColors.orange.withOpacity(0.3),
                                 ),
                               ),
-                              child: const Text(
-                                'CUSTOM',
-                                style: TextStyle(
+                              child: Text(
+                                loc.get('custom'),
+                                style: const TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.orange,
@@ -399,7 +428,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        exercise.muscleGroupsDisplay,
+                        _getLocalizedMuscleGroupsDisplay(exercise, loc),
                         style: const TextStyle(
                           fontSize: 14,
                           color: AppColors.textSecondary,
@@ -422,6 +451,8 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
   }
 
   void _addCustomExercise() {
+    final loc = context.read<LocalizationService>();
+
     showDialog(
       context: context,
       builder: (context) => AddCustomExerciseDialog(
@@ -431,7 +462,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
             await _loadExercises();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Added "${exercise.name}" to exercises'),
+                content: Text(loc.getFormatted('added_to_exercises', {'name': exercise.name})),
                 backgroundColor: AppColors.success,
               ),
             );
@@ -449,6 +480,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
   }
 
   void _showExerciseDetails(Exercise exercise) {
+    final loc = context.watch<LocalizationService>();
     final isCustom = exercise.id.length > 10;
 
     showModalBottomSheet(
@@ -527,9 +559,9 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                                         color: AppColors.orange,
                                         borderRadius: BorderRadius.circular(16),
                                       ),
-                                      child: const Text(
-                                        'CUSTOM',
-                                        style: TextStyle(
+                                      child: Text(
+                                        loc.get('custom'),
+                                        style: const TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                           color: Colors.white,
@@ -556,9 +588,9 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'DESCRIPTION',
-                            style: TextStyle(
+                          Text(
+                            loc.get('description'),
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                               color: AppColors.textSecondary,
@@ -588,9 +620,9 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'INSTRUCTIONS',
-                              style: TextStyle(
+                            Text(
+                              loc.get('instructions'),
+                              style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.textSecondary,
@@ -661,9 +693,9 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                                   size: 20,
                                 ),
                                 const SizedBox(width: 8),
-                                const Text(
-                                  'PRO TIPS',
-                                  style: TextStyle(
+                                Text(
+                                  loc.get('pro_tips'),
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.primaryRed,
@@ -709,7 +741,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                         if (isCustom)
                           Expanded(
                             child: OutlineButton(
-                              text: 'Delete',
+                              text: loc.get('delete'),
                               icon: Icons.delete_outline,
                               borderColor: AppColors.warning,
                               onPressed: () => _deleteCustomExercise(exercise),
@@ -718,7 +750,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                         if (isCustom) const SizedBox(width: 16),
                         Expanded(
                           child: GradientButton(
-                            text: 'Close',
+                            text: loc.get('close'),
                             onPressed: () => Navigator.of(context).pop(),
                           ),
                         ),
@@ -735,6 +767,8 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
   }
 
   Widget _buildMuscleGroupsDisplay(Exercise exercise) {
+    final loc = context.watch<LocalizationService>();
+
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -762,7 +796,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
               ),
               const SizedBox(width: 4),
               Text(
-                exercise.primaryMuscle.russianName,
+                loc.get(exercise.primaryMuscle.localizationKey),
                 style: const TextStyle(
                   color: AppColors.primaryRed,
                   fontSize: 14,
@@ -783,7 +817,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            muscle.russianName,
+            loc.get(muscle.localizationKey),
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 12,
@@ -795,6 +829,8 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
   }
 
   void _deleteCustomExercise(Exercise exercise) {
+    final loc = context.read<LocalizationService>();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -802,18 +838,18 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        title: const Text(
-          'Delete Custom Exercise?',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          loc.get('delete_custom_exercise'),
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         content: Text(
-          'Are you sure you want to delete "${exercise.name}"?',
+          loc.getFormatted('are_you_sure_delete', {'name': exercise.name}),
           style: const TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(loc.get('cancel')),
           ),
           TextButton(
             onPressed: () async {
@@ -824,8 +860,8 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                 await _db.deleteExercise(exercise.id);
                 await _loadExercises();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Exercise deleted'),
+                  SnackBar(
+                    content: Text(loc.get('exercise_deleted')),
                     backgroundColor: AppColors.success,
                   ),
                 );
@@ -838,9 +874,9 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                 );
               }
             },
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: AppColors.warning),
+            child: Text(
+              loc.get('delete'),
+              style: const TextStyle(color: AppColors.warning),
             ),
           ),
         ],

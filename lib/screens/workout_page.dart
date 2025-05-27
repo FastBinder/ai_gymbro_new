@@ -166,7 +166,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
       floatingActionButton: !_isWorkoutActive
           ? Container(
         height: 64,
-        width: 200,
+        width: loc.currentLanguage == 'ru' ? 240 : 200, // Больше ширина для русского
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [AppColors.primaryRed, AppColors.darkRed],
@@ -193,13 +193,18 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                 children: [
                   const Icon(Icons.play_arrow, color: Colors.white, size: 28),
                   const SizedBox(width: 8),
-                  Text(
-                    loc.get('start_workout'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        loc.get('start_workout'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -1013,52 +1018,48 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
     final loc = context.watch<LocalizationService>();
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      height: 56,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
+        gradient: const LinearGradient(
           colors: [
-            AppColors.surfaceLight,
-            AppColors.surfaceLight.withOpacity(0),
+            AppColors.warning,
+            AppColors.primaryRed,
           ],
         ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryRed.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Container(
-        height: 56,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [
-              AppColors.warning,
-              AppColors.primaryRed,
-            ],
-          ),
+      child: MaterialButton(
+        onPressed: _finishWorkout,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primaryRed.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
         ),
-        child: MaterialButton(
-          onPressed: _finishWorkout,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.stop, color: Colors.white, size: 24),
               const SizedBox(width: 12),
-              Text(
-                loc.get('finish_workout'),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    loc.get('finish_workout'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -1244,6 +1245,9 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
   }
 
   @override
+  // В workout_page.dart найдите класс CompleteSetDialog и замените метод build:
+
+  @override
   Widget build(BuildContext context) {
     final loc = context.watch<LocalizationService>();
 
@@ -1252,6 +1256,8 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
       ),
+      // Добавляем отступ снизу для рекламы
+      insetPadding: const EdgeInsets.fromLTRB(40, 40, 40, 100),
       child: Container(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -1518,13 +1524,19 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                         size: 28,
                       ),
                       const SizedBox(width: 12),
-                      Text(
-                        loc.get('select_exercise'),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                          letterSpacing: 1.2,
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            loc.get('select_exercise'),
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
                         ),
                       ),
                       const Spacer(),

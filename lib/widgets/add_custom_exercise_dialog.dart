@@ -1,7 +1,9 @@
 // lib/widgets/add_custom_exercise_dialog.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/exercise.dart';
+import '../services/localization_service.dart';
 import '../widgets/custom_widgets.dart';
 
 class AddCustomExerciseDialog extends StatefulWidget {
@@ -26,6 +28,8 @@ class _AddCustomExerciseDialogState extends State<AddCustomExerciseDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
+
     return Dialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
@@ -58,13 +62,15 @@ class _AddCustomExerciseDialogState extends State<AddCustomExerciseDialog> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    const Text(
-                      'ADD CUSTOM EXERCISE',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                        letterSpacing: 1.2,
+                    Expanded(
+                      child: Text(
+                        loc.get('add_custom_exercise'),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                          letterSpacing: 1.2,
+                        ),
                       ),
                     ),
                   ],
@@ -79,7 +85,10 @@ class _AddCustomExerciseDialogState extends State<AddCustomExerciseDialog> {
                     fontSize: 16,
                   ),
                   decoration: InputDecoration(
-                    hintText: 'e.g. Cable Crossover',
+                    labelText: loc.get('exercise_name'),
+                    hintText: loc.currentLanguage == 'ru'
+                        ? 'например, Кроссовер'
+                        : 'e.g. Cable Crossover',
                     hintStyle: TextStyle(
                       color: AppColors.textMuted,
                     ),
@@ -112,10 +121,10 @@ class _AddCustomExerciseDialogState extends State<AddCustomExerciseDialog> {
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter exercise name';
+                      return loc.get('please_enter_exercise_name');
                     }
                     if (value.trim().length < 3) {
-                      return 'Name must be at least 3 characters';
+                      return loc.get('name_must_be_3_chars');
                     }
                     return null;
                   },
@@ -126,9 +135,9 @@ class _AddCustomExerciseDialogState extends State<AddCustomExerciseDialog> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'PRIMARY MUSCLE GROUP',
-                      style: TextStyle(
+                    Text(
+                      loc.get('primary_muscle_group'),
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textSecondary,
@@ -167,7 +176,7 @@ class _AddCustomExerciseDialogState extends State<AddCustomExerciseDialog> {
                                     color: AppColors.textSecondary,
                                   ),
                                   const SizedBox(width: 12),
-                                  Text(muscle.russianName),
+                                  Text(loc.get(muscle.localizationKey)),
                                 ],
                               ),
                             );
@@ -192,9 +201,9 @@ class _AddCustomExerciseDialogState extends State<AddCustomExerciseDialog> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'SECONDARY MUSCLE GROUPS',
-                      style: TextStyle(
+                    Text(
+                      loc.get('secondary_muscle_groups'),
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textSecondary,
@@ -215,7 +224,7 @@ class _AddCustomExerciseDialogState extends State<AddCustomExerciseDialog> {
                         runSpacing: 8,
                         children: MuscleGroup.values
                             .where((muscle) => muscle != _selectedPrimaryMuscle)
-                            .map((muscle) => _buildMuscleChip(muscle))
+                            .map((muscle) => _buildMuscleChip(muscle, loc))
                             .toList(),
                       ),
                     ),
@@ -232,7 +241,7 @@ class _AddCustomExerciseDialogState extends State<AddCustomExerciseDialog> {
                   ),
                   maxLines: 2,
                   decoration: InputDecoration(
-                    hintText: 'Brief description of the exercise',
+                    hintText: loc.get('brief_description'),
                     hintStyle: TextStyle(
                       color: AppColors.textMuted,
                     ),
@@ -284,7 +293,7 @@ class _AddCustomExerciseDialogState extends State<AddCustomExerciseDialog> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Custom exercises will be saved and available for all future workouts',
+                          loc.get('custom_exercises_saved'),
                           style: TextStyle(
                             fontSize: 14,
                             color: AppColors.textSecondary,
@@ -301,14 +310,14 @@ class _AddCustomExerciseDialogState extends State<AddCustomExerciseDialog> {
                   children: [
                     Expanded(
                       child: OutlineButton(
-                        text: 'Cancel',
+                        text: loc.get('cancel'),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: GradientButton(
-                        text: 'Save Exercise',
+                        text: loc.get('save_exercise'),
                         icon: Icons.save,
                         onPressed: _saveExercise,
                       ),
@@ -323,7 +332,7 @@ class _AddCustomExerciseDialogState extends State<AddCustomExerciseDialog> {
     );
   }
 
-  Widget _buildMuscleChip(MuscleGroup muscle) {
+  Widget _buildMuscleChip(MuscleGroup muscle, LocalizationService loc) {
     final isSelected = _selectedSecondaryMuscles.contains(muscle);
 
     return InkWell(
@@ -362,14 +371,17 @@ class _AddCustomExerciseDialogState extends State<AddCustomExerciseDialog> {
               ),
             if (isSelected)
               const SizedBox(width: 4),
-            Text(
-              muscle.russianName,
-              style: TextStyle(
-                color: isSelected
-                    ? AppColors.primaryRed
-                    : AppColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                fontSize: 14,
+            Flexible(
+              child: Text(
+                loc.get(muscle.localizationKey),
+                style: TextStyle(
+                  color: isSelected
+                      ? AppColors.primaryRed
+                      : AppColors.textSecondary,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 14,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
