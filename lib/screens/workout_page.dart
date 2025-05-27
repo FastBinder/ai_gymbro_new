@@ -1,11 +1,13 @@
 // lib/screens/workout_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'dart:async';
 import '../models/exercise.dart';
 import '../models/workout.dart';
 import '../widgets/add_set_dialog.dart';
 import '../services/database_service.dart';
+import '../services/localization_service.dart';
 import '../widgets/custom_widgets.dart';
 import 'workout_details_page.dart';
 
@@ -125,8 +127,16 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
     }
   }
 
+  // Получить локализованное название группы мышц
+  String _getLocalizedMuscleName(MuscleGroup muscle, LocalizationService loc) {
+    final muscleKey = 'muscle_${muscle.name}';
+    return loc.get(muscleKey);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -141,9 +151,9 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
               size: 28,
             ),
             const SizedBox(width: 8),
-            const Text(
-              'WORKOUTS',
-              style: TextStyle(
+            Text(
+              loc.get('nav_workout'),
+              style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
@@ -180,12 +190,12 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.play_arrow, color: Colors.white, size: 28),
-                  SizedBox(width: 8),
+                children: [
+                  const Icon(Icons.play_arrow, color: Colors.white, size: 28),
+                  const SizedBox(width: 8),
                   Text(
-                    'START WORKOUT',
-                    style: TextStyle(
+                    loc.get('start_workout'),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -204,6 +214,8 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
   }
 
   Widget _buildWorkoutList() {
+    final loc = context.watch<LocalizationService>();
+
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(
@@ -235,9 +247,9 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'No workouts yet',
-              style: TextStyle(
+            Text(
+              loc.get('no_workouts_yet'),
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -245,7 +257,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
             ),
             const SizedBox(height: 8),
             Text(
-              'Start your first workout and crush your goals!',
+              loc.get('start_first_workout'),
               style: TextStyle(
                 fontSize: 16,
                 color: AppColors.textSecondary,
@@ -326,7 +338,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${workout.exercises.length} exercises',
+                              '${workout.exercises.length} ${loc.get('exercises')}',
                               style: TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 14,
@@ -354,6 +366,8 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
   }
 
   Future<void> _deleteWorkout(String id) async {
+    final loc = context.read<LocalizationService>();
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -361,24 +375,24 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        title: const Text(
-          'Delete Workout?',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          loc.get('delete_workout_question'),
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
-        content: const Text(
-          'This action cannot be undone.',
+        content: Text(
+          loc.get('action_cannot_be_undone'),
           style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(loc.get('cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: AppColors.warning),
+            child: Text(
+              loc.get('delete'),
+              style: const TextStyle(color: AppColors.warning),
             ),
           ),
         ],
@@ -390,8 +404,8 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
         await _db.deleteWorkout(id);
         await _loadWorkouts();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Workout deleted'),
+          SnackBar(
+            content: Text(loc.get('workout_deleted')),
             backgroundColor: AppColors.success,
           ),
         );
@@ -407,6 +421,8 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
   }
 
   Widget _buildActiveWorkout() {
+    final loc = context.watch<LocalizationService>();
+
     return Column(
       children: [
         _buildTimersSection(),
@@ -435,12 +451,12 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.add, color: AppColors.primaryRed),
-                      SizedBox(width: 8),
+                    children: [
+                      const Icon(Icons.add, color: AppColors.primaryRed),
+                      const SizedBox(width: 8),
                       Text(
-                        'ADD EXERCISE',
-                        style: TextStyle(
+                        loc.get('add_exercise'),
+                        style: const TextStyle(
                           color: AppColors.primaryRed,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.2,
@@ -460,6 +476,8 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
   }
 
   Widget _buildTimersSection() {
+    final loc = context.watch<LocalizationService>();
+
     final workoutDuration = _workoutStartTime != null
         ? DateTime.now().difference(_workoutStartTime!)
         : Duration.zero;
@@ -504,7 +522,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'WORKOUT TIME',
+                      loc.get('workout_time'),
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -573,7 +591,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'REST',
+                            loc.get('rest'),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
@@ -630,7 +648,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'SET',
+                            loc.get('set'),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
@@ -665,6 +683,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
   }
 
   Widget _buildExerciseCard(int index, WorkoutExercise workoutExercise) {
+    final loc = context.watch<LocalizationService>();
     final isActive = _activeExerciseIndex == index;
 
     return Container(
@@ -737,9 +756,9 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                         ),
                       ],
                     ),
-                    child: const Text(
-                      'ACTIVE',
-                      style: TextStyle(
+                    child: Text(
+                      loc.get('active'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
@@ -785,7 +804,9 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              '${set.weight} kg × ${set.reps} reps',
+                              loc.currentLanguage == 'ru'
+                                  ? '${set.weight} кг × ${set.reps} повт'
+                                  : '${set.weight} kg × ${set.reps} reps',
                               style: const TextStyle(
                                 color: AppColors.textPrimary,
                                 fontSize: 16,
@@ -794,7 +815,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                             ),
                           ),
                           Text(
-                            '${(set.weight * set.reps).toStringAsFixed(0)} kg',
+                            '${(set.weight * set.reps).toStringAsFixed(0)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
                             style: TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 14,
@@ -848,12 +869,12 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.play_arrow, color: Colors.white, size: 20),
-                          SizedBox(width: 8),
+                        children: [
+                          const Icon(Icons.play_arrow, color: Colors.white, size: 20),
+                          const SizedBox(width: 8),
                           Text(
-                            'START SET',
-                            style: TextStyle(
+                            loc.get('start_set'),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.2,
@@ -902,12 +923,12 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.check, color: Colors.white, size: 20),
-                          SizedBox(width: 8),
+                        children: [
+                          const Icon(Icons.check, color: Colors.white, size: 20),
+                          const SizedBox(width: 8),
                           Text(
-                            'COMPLETE',
-                            style: TextStyle(
+                            loc.get('complete'),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.2,
@@ -927,6 +948,8 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
   }
 
   Widget _buildMuscleGroupsDisplay(Exercise exercise) {
+    final loc = context.watch<LocalizationService>();
+
     return Wrap(
       spacing: 8,
       runSpacing: 4,
@@ -954,7 +977,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
               ),
               const SizedBox(width: 4),
               Text(
-                exercise.primaryMuscle.russianName,
+                _getLocalizedMuscleName(exercise.primaryMuscle, loc),
                 style: const TextStyle(
                   color: AppColors.primaryRed,
                   fontSize: 12,
@@ -975,7 +998,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
-            muscle.russianName,
+            _getLocalizedMuscleName(muscle, loc),
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 11,
@@ -987,6 +1010,8 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
   }
 
   Widget _buildFinishButton() {
+    final loc = context.watch<LocalizationService>();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1024,12 +1049,12 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.stop, color: Colors.white, size: 24),
-              SizedBox(width: 12),
+            children: [
+              const Icon(Icons.stop, color: Colors.white, size: 24),
+              const SizedBox(width: 12),
               Text(
-                'FINISH WORKOUT',
-                style: TextStyle(
+                loc.get('finish_workout'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1115,10 +1140,12 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
   }
 
   void _finishWorkout() async {
+    final loc = context.read<LocalizationService>();
+
     if (_currentExercises.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Add at least one exercise'),
+        SnackBar(
+          content: Text(loc.get('add_at_least_one_exercise')),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -1152,8 +1179,8 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Workout saved!'),
+        SnackBar(
+          content: Text(loc.get('workout_saved')),
           backgroundColor: AppColors.success,
         ),
       );
@@ -1184,7 +1211,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
   }
 }
 
-// Updated CompleteSetDialog with dark theme
+// Updated CompleteSetDialog with dark theme and localization
 class CompleteSetDialog extends StatefulWidget {
   final double? lastWeight;
   final int? lastReps;
@@ -1218,6 +1245,8 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
+
     return Dialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
@@ -1228,9 +1257,9 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'COMPLETE SET',
-              style: TextStyle(
+            Text(
+              loc.get('complete_set'),
+              style: const TextStyle(
                 fontSize: 20,
                 letterSpacing: 1.2,
                 fontWeight: FontWeight.bold,
@@ -1269,9 +1298,9 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
                           size: 32,
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'SAME AS LAST SET',
-                          style: TextStyle(
+                        Text(
+                          loc.get('same_as_last_set'),
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: AppColors.primaryRed,
                             letterSpacing: 1.2,
@@ -1279,7 +1308,9 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '${widget.lastWeight} kg × ${widget.lastReps} reps',
+                          loc.currentLanguage == 'ru'
+                              ? '${widget.lastWeight} кг × ${widget.lastReps} повт'
+                              : '${widget.lastWeight} kg × ${widget.lastReps} reps',
                           style: const TextStyle(
                             fontSize: 20,
                             color: AppColors.textPrimary,
@@ -1298,7 +1329,7 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                      'OR ENTER MANUALLY',
+                      loc.get('or_enter_manually'),
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 12,
@@ -1313,14 +1344,14 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
             ],
             GymTextField(
               controller: _weightController,
-              hintText: 'Weight (kg)',
+              hintText: loc.get('weight_kg'),
               prefixIcon: Icons.fitness_center,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
             ),
             const SizedBox(height: 16),
             GymTextField(
               controller: _repsController,
-              hintText: 'Reps',
+              hintText: loc.get('reps'),
               prefixIcon: Icons.repeat,
               keyboardType: TextInputType.number,
             ),
@@ -1329,14 +1360,14 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
               children: [
                 Expanded(
                   child: OutlineButton(
-                    text: 'Cancel',
+                    text: loc.get('cancel'),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: GradientButton(
-                    text: 'Save',
+                    text: loc.get('save'),
                     onPressed: () {
                       final weight = double.tryParse(_weightController.text) ?? 0;
                       final reps = int.tryParse(_repsController.text) ?? 0;
@@ -1364,7 +1395,7 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
   }
 }
 
-// Exercise Selection Dialog with Search
+// Exercise Selection Dialog with Search and localization
 class _ExerciseSelectionDialog extends StatefulWidget {
   final List<Exercise> exercises;
   final Function(Exercise) onSelect;
@@ -1401,7 +1432,12 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
       groups.add(exercise.primaryMuscle);
       groups.addAll(exercise.secondaryMuscles);
     }
-    return groups.toList()..sort((a, b) => a.russianName.compareTo(b.russianName));
+    return groups.toList()..sort((a, b) => a.name.compareTo(b.name));
+  }
+
+  String _getLocalizedMuscleName(MuscleGroup muscle, LocalizationService loc) {
+    final muscleKey = 'muscle_${muscle.name}';
+    return loc.get(muscleKey);
   }
 
   IconData _getMuscleGroupIcon(MuscleGroup muscle) {
@@ -1445,6 +1481,8 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
+
     return Dialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(
@@ -1480,9 +1518,9 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                         size: 28,
                       ),
                       const SizedBox(width: 12),
-                      const Text(
-                        'SELECT EXERCISE',
-                        style: TextStyle(
+                      Text(
+                        loc.get('select_exercise'),
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
@@ -1510,7 +1548,7 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                       fontSize: 16,
                     ),
                     decoration: InputDecoration(
-                      hintText: 'Search exercises...',
+                      hintText: loc.get('search_exercises'),
                       hintStyle: TextStyle(
                         color: AppColors.textMuted,
                       ),
@@ -1562,7 +1600,7 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: FilterChip(
-                        label: const Text('All'),
+                        label: Text(loc.get('all')),
                         selected: _selectedMuscleFilter == null,
                         onSelected: (selected) {
                           setState(() {
@@ -1593,7 +1631,7 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: FilterChip(
-                      label: Text(muscle.russianName),
+                      label: Text(_getLocalizedMuscleName(muscle, loc)),
                       selected: _selectedMuscleFilter == muscle,
                       onSelected: (selected) {
                         setState(() {
@@ -1636,7 +1674,7 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'No exercises found',
+                      loc.get('no_exercises_found'),
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 18,
@@ -1645,7 +1683,7 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Try different search terms',
+                      loc.get('try_different_filters'),
                       style: TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 14,
@@ -1706,7 +1744,7 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    exercise.muscleGroupsDisplay,
+                                    _getLocalizedMuscleGroupsDisplay(exercise, loc),
                                     style: TextStyle(
                                       color: AppColors.textSecondary,
                                       fontSize: 14,
@@ -1732,5 +1770,14 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
         ),
       ),
     );
+  }
+
+  String _getLocalizedMuscleGroupsDisplay(Exercise exercise, LocalizationService loc) {
+    final primary = _getLocalizedMuscleName(exercise.primaryMuscle, loc);
+    if (exercise.secondaryMuscles.isEmpty) {
+      return primary;
+    }
+    final secondary = exercise.secondaryMuscles.map((m) => _getLocalizedMuscleName(m, loc)).join(', ');
+    return '$primary • $secondary';
   }
 }

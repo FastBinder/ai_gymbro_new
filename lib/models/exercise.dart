@@ -2,30 +2,25 @@
 
 /// Перечисление всех групп мышц для type safety
 enum MuscleGroup {
-  chest('Chest', 'Грудь'),
-  back('Back', 'Спина'),
-  shoulders('Shoulders', 'Плечи'),
-  biceps('Biceps', 'Бицепс'),
-  triceps('Triceps', 'Трицепс'),
-  forearms('Forearms', 'Предплечья'),
-  abs('Abs', 'Пресс'),
-  obliques('Obliques', 'Косые мышцы'),
-  quadriceps('Quadriceps', 'Квадрицепс'),
-  hamstrings('Hamstrings', 'Бицепс бедра'),
-  glutes('Glutes', 'Ягодицы'),
-  calves('Calves', 'Икры'),
-  traps('Traps', 'Трапеция'),
-  lats('Lats', 'Широчайшие'),
-  middleBack('Middle Back', 'Середина спины'),
-  lowerBack('Lower Back', 'Поясница'),
-  frontDelts('Front Delts', 'Передние дельты'),
-  sideDelts('Side Delts', 'Средние дельты'),
-  rearDelts('Rear Delts', 'Задние дельты');
-
-  final String englishName;
-  final String russianName;
-
-  const MuscleGroup(this.englishName, this.russianName);
+  chest,
+  back,
+  shoulders,
+  biceps,
+  triceps,
+  forearms,
+  abs,
+  obliques,
+  quadriceps,
+  hamstrings,
+  glutes,
+  calves,
+  traps,
+  lats,
+  middleBack,
+  lowerBack,
+  frontDelts,
+  sideDelts,
+  rearDelts;
 
   // Для сериализации/десериализации
   static MuscleGroup fromString(String value) {
@@ -33,6 +28,37 @@ enum MuscleGroup {
           (e) => e.name == value,
       orElse: () => MuscleGroup.chest,
     );
+  }
+}
+
+// Extension для получения ключа локализации
+extension MuscleGroupExtension on MuscleGroup {
+  String get localizationKey => 'muscle_$name';
+
+  // Для обратной совместимости, пока не обновите все использования
+  @Deprecated('Use localization service instead')
+  String get russianName {
+    switch (this) {
+      case MuscleGroup.chest: return 'Грудь';
+      case MuscleGroup.back: return 'Спина';
+      case MuscleGroup.shoulders: return 'Плечи';
+      case MuscleGroup.biceps: return 'Бицепс';
+      case MuscleGroup.triceps: return 'Трицепс';
+      case MuscleGroup.forearms: return 'Предплечья';
+      case MuscleGroup.abs: return 'Пресс';
+      case MuscleGroup.obliques: return 'Косые мышцы';
+      case MuscleGroup.quadriceps: return 'Квадрицепс';
+      case MuscleGroup.hamstrings: return 'Бицепс бедра';
+      case MuscleGroup.glutes: return 'Ягодицы';
+      case MuscleGroup.calves: return 'Икры';
+      case MuscleGroup.traps: return 'Трапеция';
+      case MuscleGroup.lats: return 'Широчайшие';
+      case MuscleGroup.middleBack: return 'Середина спины';
+      case MuscleGroup.lowerBack: return 'Поясница';
+      case MuscleGroup.frontDelts: return 'Передние дельты';
+      case MuscleGroup.sideDelts: return 'Средние дельты';
+      case MuscleGroup.rearDelts: return 'Задние дельты';
+    }
   }
 }
 
@@ -68,7 +94,8 @@ class Exercise {
     return primaryMuscle == muscle || secondaryMuscles.contains(muscle);
   }
 
-  /// Получить все группы мышц как строку для отображения
+  /// Получить все группы мышц как строку для отображения (deprecated)
+  @Deprecated('Use UI layer with localization service')
   String get muscleGroupsDisplay {
     if (secondaryMuscles.isEmpty) {
       return primaryMuscle.russianName;
@@ -84,12 +111,12 @@ class Exercise {
       'id': id,
       'name': name,
       'primaryMuscle': primaryMuscle.name,
-      'secondaryMuscles': secondaryMuscles.map((m) => m.name).join(','),
+      'secondaryMuscles': secondaryMuscles.map((m) => m.name).join('|'), // Изменен разделитель
       'description': description,
       'imageUrl': imageUrl,
       'videoUrl': videoUrl,
-      'instructions': instructions?.join('|'),
-      'tips': tips?.join('|'),
+      'instructions': instructions?.join('|||'), // Уникальный разделитель
+      'tips': tips?.join('|||'),
     };
   }
 
@@ -99,7 +126,7 @@ class Exercise {
       name: map['name'],
       primaryMuscle: MuscleGroup.fromString(map['primaryMuscle']),
       secondaryMuscles: (map['secondaryMuscles'] as String?)
-          ?.split(',')
+          ?.split('|')
           .where((s) => s.isNotEmpty)
           .map((s) => MuscleGroup.fromString(s))
           .toList() ??
@@ -108,11 +135,11 @@ class Exercise {
       imageUrl: map['imageUrl'],
       videoUrl: map['videoUrl'],
       instructions: (map['instructions'] as String?)
-          ?.split('|')
+          ?.split('|||')
           .where((s) => s.isNotEmpty)
           .toList(),
       tips: (map['tips'] as String?)
-          ?.split('|')
+          ?.split('|||')
           .where((s) => s.isNotEmpty)
           .toList(),
     );
