@@ -1,12 +1,40 @@
 // lib/screens/progress_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'dart:math' as math;
 import '../models/workout.dart';
 import '../models/exercise.dart';
 import '../services/database_service.dart';
+import '../services/localization_service.dart';
 import '../widgets/custom_widgets.dart';
 import '../widgets/muscle_body_visualization.dart';
+
+// Сначала определим TrainingLevel enum
+enum TrainingLevel {
+  beginner(10, 20),
+  intermediate(15, 25),
+  advanced(20, 30);
+
+  final int minSets;
+  final int maxSets;
+
+  const TrainingLevel(this.minSets, this.maxSets);
+}
+
+// Extension для локализации TrainingLevel
+extension TrainingLevelExtension on TrainingLevel {
+  String getLocalizedName(LocalizationService loc) {
+    switch (this) {
+      case TrainingLevel.beginner:
+        return loc.get('beginner');
+      case TrainingLevel.intermediate:
+        return loc.get('intermediate');
+      case TrainingLevel.advanced:
+        return loc.get('advanced');
+    }
+  }
+}
 
 class ProgressPage extends StatefulWidget {
   const ProgressPage({Key? key}) : super(key: key);
@@ -62,6 +90,8 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -76,9 +106,9 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
               size: 28,
             ),
             const SizedBox(width: 8),
-            const Text(
-              'PROGRESS',
-              style: TextStyle(
+            Text(
+              loc.get('nav_progress'),
+              style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
@@ -96,9 +126,9 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
-          tabs: const [
-            Tab(text: 'THIS WEEK'),
-            Tab(text: 'ALL TIME'),
+          tabs: [
+            Tab(text: loc.get('this_week')),
+            Tab(text: loc.get('all_time')),
           ],
         ),
       ),
@@ -119,8 +149,13 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   }
 
   Widget _buildWeekStats() {
+    final loc = context.watch<LocalizationService>();
+
     if (_weekWorkouts.isEmpty) {
-      return _buildEmptyState('No workouts this week', 'Start training to see your weekly progress!');
+      return _buildEmptyState(
+          loc.get('no_workouts_this_week'),
+          loc.get('start_training_week')
+      );
     }
 
     final muscleStats = _calculateMuscleStats(_weekWorkouts);
@@ -136,7 +171,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
           const SizedBox(height: 20),
           _buildComingSoonCard(),
           const SizedBox(height: 20),
-          _buildSectionTitle('Weekly Sets by Muscle Group'),
+          _buildSectionTitle(loc.get('weekly_sets_by_muscle')),
           const SizedBox(height: 16),
           ...muscleStats.entries.map((entry) => _buildMuscleSetCard(entry.key, entry.value)),
         ],
@@ -145,8 +180,13 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   }
 
   Widget _buildAllTimeStats() {
+    final loc = context.watch<LocalizationService>();
+
     if (_allWorkouts.isEmpty) {
-      return _buildEmptyState('No workouts yet', 'Complete your first workout to see progress!');
+      return _buildEmptyState(
+          loc.get('no_workouts_yet_progress'),
+          loc.get('complete_first_workout')
+      );
     }
 
     final muscleStats = _calculateMuscleStats(_allWorkouts);
@@ -159,11 +199,11 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
         children: [
           _buildAllTimeSummaryCard(),
           const SizedBox(height: 20),
-          _buildSectionTitle('Strength Progress'),
+          _buildSectionTitle(loc.get('strength_progress')),
           const SizedBox(height: 16),
           ...exerciseProgress.entries.map((entry) => _buildExerciseProgressCard(entry.key, entry.value)),
           const SizedBox(height: 20),
-          _buildSectionTitle('Total Sets by Muscle Group'),
+          _buildSectionTitle(loc.get('total_sets_by_muscle')),
           const SizedBox(height: 16),
           ...muscleStats.entries.map((entry) => _buildMuscleSetCard(entry.key, entry.value)),
         ],
@@ -184,7 +224,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
           const SizedBox(height: 16),
           Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
@@ -204,6 +244,8 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   }
 
   Widget _buildSummaryCard() {
+    final loc = context.watch<LocalizationService>();
+
     int totalSets = 0;
     int totalReps = 0;
     double totalVolume = 0;
@@ -234,9 +276,9 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
       ),
       child: Column(
         children: [
-          const Text(
-            'WEEK SUMMARY',
-            style: TextStyle(
+          Text(
+            loc.get('week_summary'),
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: AppColors.textSecondary,
@@ -247,10 +289,14 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildStatItem('Workouts', _weekWorkouts.length.toString(), Icons.calendar_today),
-              _buildStatItem('Sets', totalSets.toString(), Icons.format_list_numbered),
-              _buildStatItem('Reps', totalReps.toString(), Icons.repeat),
-              _buildStatItem('Volume', '${totalVolume.toStringAsFixed(0)} kg', Icons.fitness_center),
+              _buildStatItem(loc.get('workouts'), _weekWorkouts.length.toString(), Icons.calendar_today),
+              _buildStatItem(loc.get('sets'), totalSets.toString(), Icons.format_list_numbered),
+              _buildStatItem(loc.get('reps'), totalReps.toString(), Icons.repeat),
+              _buildStatItem(
+                  loc.get('volume'),
+                  '${totalVolume.toStringAsFixed(0)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
+                  Icons.fitness_center
+              ),
             ],
           ),
         ],
@@ -259,6 +305,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   }
 
   Widget _buildAllTimeSummaryCard() {
+    final loc = context.watch<LocalizationService>();
     final stats = _db.getStatistics();
 
     return FutureBuilder<Map<String, dynamic>>(
@@ -301,9 +348,9 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
           ),
           child: Column(
             children: [
-              const Text(
-                'ALL TIME STATS',
-                style: TextStyle(
+              Text(
+                loc.get('all_time_stats'),
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textSecondary,
@@ -314,10 +361,10 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildStatItem('Workouts', totalWorkouts.toString(), Icons.fitness_center),
-                  _buildStatItem('Total Time', _formatDuration(totalDuration), Icons.timer),
-                  _buildStatItem('Streak', '$streak days', Icons.local_fire_department),
-                  _buildStatItem('Total Sets', totalSets.toString(), Icons.format_list_numbered),
+                  _buildStatItem(loc.get('workouts'), totalWorkouts.toString(), Icons.fitness_center),
+                  _buildStatItem(loc.get('total_time'), _formatDuration(totalDuration), Icons.timer),
+                  _buildStatItem(loc.get('streak'), '$streak ${loc.get('days')}', Icons.local_fire_department),
+                  _buildStatItem(loc.get('sets'), totalSets.toString(), Icons.format_list_numbered),
                 ],
               ),
             ],
@@ -328,6 +375,8 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   }
 
   Widget _buildTrainingLevelSelector() {
+    final loc = context.watch<LocalizationService>();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -338,9 +387,9 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'УРОВЕНЬ ПОДГОТОВКИ',
-            style: TextStyle(
+          Text(
+            loc.get('training_level'),
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
               color: AppColors.textSecondary,
@@ -373,7 +422,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                       child: Column(
                         children: [
                           Text(
-                            level.name,
+                            level.getLocalizedName(loc),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
@@ -384,7 +433,10 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${level.minSets}-${level.maxSets} сетов',
+                            loc.getFormatted('sets_range', {
+                              'min': level.minSets,
+                              'max': level.maxSets
+                            }),
                             style: TextStyle(
                               fontSize: 12,
                               color: AppColors.textMuted,
@@ -404,6 +456,8 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   }
 
   Widget _buildComingSoonCard() {
+    final loc = context.watch<LocalizationService>();
+
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
@@ -427,9 +481,9 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
               color: AppColors.primaryRed,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'MUSCLE VISUALIZATION',
-              style: TextStyle(
+            Text(
+              loc.get('muscle_visualization'),
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -453,8 +507,8 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'COMING SOON',
-                    style: TextStyle(
+                    loc.get('coming_soon'),
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: AppColors.primaryRed,
@@ -466,7 +520,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
             ),
             const SizedBox(height: 16),
             Text(
-              'Visual body representation with muscle group highlights',
+              loc.get('visual_body_representation'),
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
@@ -480,6 +534,8 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   }
 
   Widget _buildMuscleSetCard(MuscleGroup muscle, MuscleStats stats) {
+    final loc = context.watch<LocalizationService>();
+
     // Format sets to show as integer if whole number, otherwise with one decimal
     final setsDisplay = stats.sets % 1 == 0
         ? stats.sets.toInt().toString()
@@ -517,7 +573,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          muscle.russianName,
+                          loc.get(muscle.localizationKey),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -526,7 +582,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Target: ${_selectedLevel.minSets}-${_selectedLevel.maxSets} sets',
+                          '${loc.get('target')}: ${_selectedLevel.minSets}-${_selectedLevel.maxSets} ${loc.get('sets')}',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,
@@ -549,7 +605,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                             ),
                           ),
                           Text(
-                            ' sets',
+                            ' ${loc.get('sets')}',
                             style: TextStyle(
                               fontSize: 14,
                               color: AppColors.textSecondary,
@@ -558,7 +614,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                         ],
                       ),
                       Text(
-                        '${percentage.toStringAsFixed(0)}% of max',
+                        '${percentage.toStringAsFixed(0)}% ${loc.get('of_max')}',
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.textMuted,
@@ -645,6 +701,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   }
 
   Widget _buildMuscleDistributionChart(Map<MuscleGroup, MuscleStats> stats) {
+    final loc = context.watch<LocalizationService>();
     final total = stats.values.fold(0.0, (sum, stat) => sum + stat.sets);
 
     return Container(
@@ -662,7 +719,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
             child: CustomPaint(
               painter: PieChartPainter(
                 data: stats.map((muscle, stat) => MapEntry(
-                  muscle.russianName,
+                  loc.get(muscle.localizationKey),
                   stat.sets / total,
                 )),
               ),
@@ -694,7 +751,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            '${entry.key.russianName} ($percentage%)',
+                            '${loc.get(entry.key.localizationKey)} ($percentage%)',
                             style: TextStyle(
                               fontSize: 12,
                               color: AppColors.textSecondary,
@@ -714,6 +771,8 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   }
 
   Widget _buildMuscleVolumeCard(MuscleGroup muscle, MuscleStats stats) {
+    final loc = context.watch<LocalizationService>();
+
     // Format sets to show as integer if whole number, otherwise with one decimal
     final setsDisplay = stats.sets % 1 == 0
         ? stats.sets.toInt().toString()
@@ -745,7 +804,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      muscle.russianName,
+                      loc.get(muscle.localizationKey),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -754,7 +813,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '$setsDisplay sets • ${stats.reps} reps',
+                      '$setsDisplay ${loc.get('sets')} • ${stats.reps} ${loc.get('reps')}',
                       style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textSecondary,
@@ -767,7 +826,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${stats.volume.toStringAsFixed(0)} kg',
+                    '${stats.volume.toStringAsFixed(0)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -775,7 +834,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                     ),
                   ),
                   Text(
-                    'total volume',
+                    loc.get('volume').toLowerCase(),
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
@@ -791,6 +850,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   }
 
   Widget _buildExerciseProgressCard(String exerciseName, ExerciseProgress progress) {
+    final loc = context.watch<LocalizationService>();
     final improvement = ((progress.currentMax - progress.firstMax) / progress.firstMax * 100);
     final isPositive = improvement >= 0;
 
@@ -851,14 +911,14 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'First',
+                          loc.get('first'),
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,
                           ),
                         ),
                         Text(
-                          '${progress.firstMax} kg',
+                          '${progress.firstMax} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -878,14 +938,14 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          'Current',
+                          loc.get('current'),
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,
                           ),
                         ),
                         Text(
-                          '${progress.currentMax} kg',
+                          '${progress.currentMax} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -899,7 +959,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
               ),
               const SizedBox(height: 8),
               Text(
-                'Performed ${progress.timesPerformed} times',
+                loc.getFormatted('performed_times', {'count': progress.timesPerformed}),
                 style: TextStyle(
                   fontSize: 12,
                   color: AppColors.textMuted,
@@ -1050,14 +1110,26 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   }
 
   String _formatDuration(Duration duration) {
+    final loc = context.read<LocalizationService>();
     final hours = duration.inHours;
     final minutes = duration.inMinutes % 60;
 
     if (hours > 0) {
-      return '${hours}h ${minutes}m';
+      return '${hours}${loc.currentLanguage == 'ru' ? 'ч' : 'h'} ${minutes}${loc.currentLanguage == 'ru' ? 'м' : 'm'}';
     } else {
-      return '${minutes}m';
+      return '${minutes}${loc.currentLanguage == 'ru' ? 'м' : 'm'}';
     }
+  }
+}
+
+// Добавляем метод getFormatted в LocalizationService extension
+extension LocalizationServiceExtension on LocalizationService {
+  String getFormatted(String key, Map<String, dynamic> params) {
+    String text = get(key);
+    params.forEach((paramKey, paramValue) {
+      text = text.replaceAll('{$paramKey}', paramValue.toString());
+    });
+    return text;
   }
 }
 
