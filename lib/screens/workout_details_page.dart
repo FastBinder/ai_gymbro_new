@@ -5,6 +5,8 @@ import 'package:share_plus/share_plus.dart';
 import '../models/workout.dart';
 import '../models/exercise.dart';
 import '../widgets/custom_widgets.dart';
+import 'package:provider/provider.dart';
+import '../services/localization_service.dart';
 
 class WorkoutDetailsPage extends StatelessWidget {
   final Workout workout;
@@ -291,7 +293,7 @@ class WorkoutDetailsPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 8),
-                _buildMuscleGroupsDisplay(exercise.exercise),
+                _buildMuscleGroupsDisplay(context, exercise.exercise),
                 const SizedBox(height: 8),
                 Text(
                   '${exercise.sets.length} sets • ${totalReps} reps • ${totalVolume.toStringAsFixed(0)} kg',
@@ -425,12 +427,14 @@ class WorkoutDetailsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildMuscleGroupsDisplay(Exercise exercise) {
+  Widget _buildMuscleGroupsDisplay(BuildContext context, Exercise exercise) {
+    final loc = context.watch<LocalizationService>();
+
     return Wrap(
       spacing: 6,
       runSpacing: 4,
       children: [
-        // Основная группа мышц
+        // Основная мышца
         Container(
           padding: const EdgeInsets.symmetric(
             horizontal: 10,
@@ -453,7 +457,7 @@ class WorkoutDetailsPage extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                exercise.primaryMuscle.russianName,
+                loc.get(exercise.primaryMuscle.localizationKey),
                 style: const TextStyle(
                   color: AppColors.primaryRed,
                   fontSize: 12,
@@ -463,7 +467,7 @@ class WorkoutDetailsPage extends StatelessWidget {
             ],
           ),
         ),
-        // Побочные группы мышц
+        // Побочные мышцы
         ...exercise.secondaryMuscles.map((muscle) => Container(
           padding: const EdgeInsets.symmetric(
             horizontal: 8,
@@ -474,7 +478,7 @@ class WorkoutDetailsPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            muscle.russianName,
+            loc.get(muscle.localizationKey),
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 11,
@@ -486,6 +490,8 @@ class WorkoutDetailsPage extends StatelessWidget {
   }
 
   void _shareWorkout(BuildContext context) {
+    final loc = context.read<LocalizationService>();
+
     // Generate workout summary text
     final buffer = StringBuffer();
     buffer.writeln('💪 AI GymBro - Workout Summary');
@@ -501,7 +507,18 @@ class WorkoutDetailsPage extends StatelessWidget {
     for (var i = 0; i < workout.exercises.length; i++) {
       final exercise = workout.exercises[i];
       buffer.writeln('${i + 1}. ${exercise.exercise.name}');
-      buffer.writeln('   ${exercise.exercise.muscleGroupsDisplay}');
+
+      // Форматируем группы мышц
+      final primaryMuscle = loc.get(exercise.exercise.primaryMuscle.localizationKey);
+      final secondaryMuscles = exercise.exercise.secondaryMuscles
+          .map((m) => loc.get(m.localizationKey))
+          .join(', ');
+
+      if (secondaryMuscles.isNotEmpty) {
+        buffer.writeln('   $primaryMuscle ($secondaryMuscles)');
+      } else {
+        buffer.writeln('   $primaryMuscle');
+      }
 
       for (var j = 0; j < exercise.sets.length; j++) {
         final set = exercise.sets[j];

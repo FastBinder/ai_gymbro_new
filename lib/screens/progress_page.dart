@@ -8,33 +8,6 @@ import '../models/exercise.dart';
 import '../services/database_service.dart';
 import '../services/localization_service.dart';
 import '../widgets/custom_widgets.dart';
-import '../widgets/muscle_body_visualization.dart';
-
-// Сначала определим TrainingLevel enum
-enum TrainingLevel {
-  beginner(10, 20),
-  intermediate(15, 25),
-  advanced(20, 30);
-
-  final int minSets;
-  final int maxSets;
-
-  const TrainingLevel(this.minSets, this.maxSets);
-}
-
-// Extension для локализации TrainingLevel
-extension TrainingLevelExtension on TrainingLevel {
-  String getLocalizedName(LocalizationService loc) {
-    switch (this) {
-      case TrainingLevel.beginner:
-        return loc.get('beginner');
-      case TrainingLevel.intermediate:
-        return loc.get('intermediate');
-      case TrainingLevel.advanced:
-        return loc.get('advanced');
-    }
-  }
-}
 
 class ProgressPage extends StatefulWidget {
   const ProgressPage({Key? key}) : super(key: key);
@@ -50,7 +23,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   List<Workout> _allWorkouts = [];
   List<Workout> _weekWorkouts = [];
   bool _isLoading = true;
-  TrainingLevel _selectedLevel = TrainingLevel.intermediate;
+  bool _showDetailedMuscles = false; // false = basic categories, true = detailed muscles
 
   @override
   void initState() {
@@ -158,7 +131,9 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
       );
     }
 
-    final muscleStats = _calculateMuscleStats(_weekWorkouts);
+    final muscleStats = _showDetailedMuscles
+        ? _calculateDetailedMuscleStats(_weekWorkouts)
+        : _calculateCategoryStats(_weekWorkouts);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -167,13 +142,14 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
         children: [
           _buildSummaryCard(),
           const SizedBox(height: 20),
-          _buildTrainingLevelSelector(),
-          const SizedBox(height: 20),
-          _buildComingSoonCard(),
+          _buildViewModeToggle(),
           const SizedBox(height: 20),
           _buildSectionTitle(loc.get('weekly_sets_by_muscle')),
           const SizedBox(height: 16),
-          ...muscleStats.entries.map((entry) => _buildMuscleSetCard(entry.key, entry.value)),
+          if (_showDetailedMuscles)
+            ..._buildDetailedMuscleCards(muscleStats as Map<DetailedMuscle, MuscleStats>)
+          else
+            ..._buildCategoryCards(muscleStats as Map<MuscleCategory, MuscleStats>),
         ],
       ),
     );
@@ -189,7 +165,9 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
       );
     }
 
-    final muscleStats = _calculateMuscleStats(_allWorkouts);
+    final muscleStats = _showDetailedMuscles
+        ? _calculateDetailedMuscleStats(_allWorkouts)
+        : _calculateCategoryStats(_allWorkouts);
     final exerciseProgress = _calculateExerciseProgress();
 
     return SingleChildScrollView(
@@ -199,13 +177,137 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
         children: [
           _buildAllTimeSummaryCard(),
           const SizedBox(height: 20),
+          _buildViewModeToggle(),
+          const SizedBox(height: 20),
           _buildSectionTitle(loc.get('strength_progress')),
           const SizedBox(height: 16),
           ...exerciseProgress.entries.map((entry) => _buildExerciseProgressCard(entry.key, entry.value)),
           const SizedBox(height: 20),
           _buildSectionTitle(loc.get('total_sets_by_muscle')),
           const SizedBox(height: 16),
-          ...muscleStats.entries.map((entry) => _buildMuscleSetCard(entry.key, entry.value)),
+          if (_showDetailedMuscles)
+            ..._buildDetailedMuscleCards(muscleStats as Map<DetailedMuscle, MuscleStats>)
+          else
+            ..._buildCategoryCards(muscleStats as Map<MuscleCategory, MuscleStats>),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildViewModeToggle() {
+    final loc = context.watch<LocalizationService>();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            loc.get('view_mode'),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textSecondary,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _showDetailedMuscles = false),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: !_showDetailedMuscles
+                          ? AppColors.primaryRed.withOpacity(0.1)
+                          : AppColors.surfaceLight,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: !_showDetailedMuscles
+                            ? AppColors.primaryRed
+                            : AppColors.border,
+                        width: !_showDetailedMuscles ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.category,
+                          size: 20,
+                          color: !_showDetailedMuscles
+                              ? AppColors.primaryRed
+                              : AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          loc.get('basic_muscles'),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: !_showDetailedMuscles
+                                ? AppColors.primaryRed
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _showDetailedMuscles = true),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _showDetailedMuscles
+                          ? AppColors.primaryRed.withOpacity(0.1)
+                          : AppColors.surfaceLight,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _showDetailedMuscles
+                            ? AppColors.primaryRed
+                            : AppColors.border,
+                        width: _showDetailedMuscles ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.view_list,
+                          size: 20,
+                          color: _showDetailedMuscles
+                              ? AppColors.primaryRed
+                              : AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          loc.get('detailed_muscles'),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: _showDetailedMuscles
+                                ? AppColors.primaryRed
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -248,14 +350,12 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
 
     int totalSets = 0;
     int totalReps = 0;
-    double totalVolume = 0;
 
     for (var workout in _weekWorkouts) {
       for (var exercise in workout.exercises) {
         totalSets += exercise.sets.length;
         for (var set in exercise.sets) {
           totalReps += set.reps;
-          totalVolume += set.weight * set.reps;
         }
       }
     }
@@ -292,11 +392,6 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
               _buildStatItem(loc.get('workouts'), _weekWorkouts.length.toString(), Icons.calendar_today),
               _buildStatItem(loc.get('sets'), totalSets.toString(), Icons.format_list_numbered),
               _buildStatItem(loc.get('reps'), totalReps.toString(), Icons.repeat),
-              _buildStatItem(
-                  loc.get('volume'),
-                  '${totalVolume.toStringAsFixed(0)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
-                  Icons.fitness_center
-              ),
             ],
           ),
         ],
@@ -320,15 +415,11 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
         final totalDuration = data['totalDuration'] as Duration;
         final streak = data['currentStreak'] as int;
 
-        // Calculate total volume
-        double totalVolume = 0;
+        // Calculate total sets
         int totalSets = 0;
         for (var workout in _allWorkouts) {
           for (var exercise in workout.exercises) {
             totalSets += exercise.sets.length;
-            for (var set in exercise.sets) {
-              totalVolume += set.weight * set.reps;
-            }
           }
         }
 
@@ -374,200 +465,133 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildTrainingLevelSelector() {
+  List<Widget> _buildCategoryCards(Map<MuscleCategory, MuscleStats> stats) {
     final loc = context.watch<LocalizationService>();
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            loc.get('training_level'),
+    return stats.entries.map((entry) {
+      final category = entry.key;
+      final stat = entry.value;
+
+      // Format sets to show as integer if whole number, otherwise with one decimal
+      final setsDisplay = stat.sets % 1 == 0
+          ? stat.sets.toInt().toString()
+          : stat.sets.toStringAsFixed(1);
+
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: GymCard(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryRed.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    _getCategoryIcon(category),
+                    color: AppColors.primaryRed,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        loc.get(category.localizationKey),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$setsDisplay ${loc.get('sets')} • ${stat.reps} ${loc.get('reps')}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  List<Widget> _buildDetailedMuscleCards(Map<DetailedMuscle, MuscleStats> stats) {
+    final loc = context.watch<LocalizationService>();
+
+    // Group by category for better organization
+    final Map<MuscleCategory, List<MapEntry<DetailedMuscle, MuscleStats>>> groupedStats = {};
+
+    for (var entry in stats.entries) {
+      final category = entry.key.category;
+      if (!groupedStats.containsKey(category)) {
+        groupedStats[category] = [];
+      }
+      groupedStats[category]!.add(entry);
+    }
+
+    final List<Widget> widgets = [];
+
+    groupedStats.forEach((category, muscles) {
+      // Add category header
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 4),
+          child: Text(
+            loc.get(category.localizationKey),
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: AppColors.textSecondary,
               letterSpacing: 1.2,
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: TrainingLevel.values.map((level) {
-              final isSelected = _selectedLevel == level;
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedLevel = level),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.primaryRed.withOpacity(0.1)
-                            : AppColors.surfaceLight,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.primaryRed
-                              : AppColors.border,
-                          width: isSelected ? 2 : 1,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            level.getLocalizedName(loc),
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: isSelected
-                                  ? AppColors.primaryRed
-                                  : AppColors.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            loc.getFormatted('sets_range', {
-                              'min': level.minSets,
-                              'max': level.maxSets
-                            }),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildComingSoonCard() {
-    final loc = context.watch<LocalizationService>();
-
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primaryRed.withOpacity(0.1),
-            AppColors.darkRed.withOpacity(0.05),
-          ],
         ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.primaryRed.withOpacity(0.3),
-        ),
-      ),
-      child: Center(
-        child: Column(
-          children: [
-            Icon(
-              Icons.accessibility_new,
-              size: 64,
-              color: AppColors.primaryRed,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              loc.get('muscle_visualization'),
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-                letterSpacing: 1.2,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.primaryRed.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
-              ),
+      );
+
+      // Add muscle cards
+      for (var entry in muscles) {
+        final muscle = entry.key;
+        final stat = entry.value;
+
+        final setsDisplay = stat.sets % 1 == 0
+            ? stat.sets.toInt().toString()
+            : stat.sets.toStringAsFixed(1);
+
+        widgets.add(
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: GymCard(
+              padding: const EdgeInsets.all(12),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.rocket_launch,
-                    size: 16,
-                    color: AppColors.primaryRed,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    loc.get('coming_soon'),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryRed,
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              loc.get('visual_body_representation'),
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMuscleSetCard(MuscleGroup muscle, MuscleStats stats) {
-    final loc = context.watch<LocalizationService>();
-
-    // Format sets to show as integer if whole number, otherwise with one decimal
-    final setsDisplay = stats.sets % 1 == 0
-        ? stats.sets.toInt().toString()
-        : stats.sets.toStringAsFixed(1);
-
-    final percentage = (stats.sets / _selectedLevel.maxSets * 100).clamp(0, 100);
-    final color = _getColorForSets(stats.sets);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: GymCard(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppColors.primaryRed.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
-                      _getMuscleGroupIcon(muscle),
-                      color: color,
-                      size: 24,
+                      _getCategoryIcon(muscle.category),
+                      color: AppColors.primaryRed,
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -575,89 +599,30 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                         Text(
                           loc.get(muscle.localizationKey),
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
                           ),
                         ),
-                        const SizedBox(height: 4),
                         Text(
-                          '${loc.get('target')}: ${_selectedLevel.minSets}-${_selectedLevel.maxSets} ${loc.get('sets')}',
+                          '$setsDisplay ${loc.get('sets')} • ${stat.reps} ${loc.get('reps')}',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 13,
                             color: AppColors.textSecondary,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            setsDisplay,
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: color,
-                            ),
-                          ),
-                          Text(
-                            ' ${loc.get('sets')}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        '${percentage.toStringAsFixed(0)}% ${loc.get('of_max')}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
-              const SizedBox(height: 12),
-              // Progress bar
-              Container(
-                height: 8,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: (percentage / 100).clamp(0.0, 1.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
+        );
+      }
+    });
 
-  Color _getColorForSets(double sets) {
-    if (sets < _selectedLevel.minSets) {
-      return AppColors.warning;
-    } else if (sets <= _selectedLevel.maxSets) {
-      return AppColors.success;
-    } else {
-      return AppColors.orange;
-    }
+    return widgets;
   }
 
   Widget _buildStatItem(String label, String value, IconData icon) {
@@ -696,155 +661,6 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
         fontWeight: FontWeight.bold,
         color: AppColors.textSecondary,
         letterSpacing: 1.2,
-      ),
-    );
-  }
-
-  Widget _buildMuscleDistributionChart(Map<MuscleGroup, MuscleStats> stats) {
-    final loc = context.watch<LocalizationService>();
-    final total = stats.values.fold(0.0, (sum, stat) => sum + stat.sets);
-
-    return Container(
-      height: 200,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          // Pie Chart
-          Expanded(
-            child: CustomPaint(
-              painter: PieChartPainter(
-                data: stats.map((muscle, stat) => MapEntry(
-                  loc.get(muscle.localizationKey),
-                  stat.sets / total,
-                )),
-              ),
-            ),
-          ),
-          const SizedBox(width: 20),
-          // Legend
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: stats.entries.map((entry) {
-                  final percentage = (entry.value.sets / total * 100).toStringAsFixed(1);
-                  final color = _getColorForIndex(stats.keys.toList().indexOf(entry.key));
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '${loc.get(entry.key.localizationKey)} ($percentage%)',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMuscleVolumeCard(MuscleGroup muscle, MuscleStats stats) {
-    final loc = context.watch<LocalizationService>();
-
-    // Format sets to show as integer if whole number, otherwise with one decimal
-    final setsDisplay = stats.sets % 1 == 0
-        ? stats.sets.toInt().toString()
-        : stats.sets.toStringAsFixed(1);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: GymCard(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryRed.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  _getMuscleGroupIcon(muscle),
-                  color: AppColors.primaryRed,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      loc.get(muscle.localizationKey),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$setsDisplay ${loc.get('sets')} • ${stats.reps} ${loc.get('reps')}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '${stats.volume.toStringAsFixed(0)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryRed,
-                    ),
-                  ),
-                  Text(
-                    loc.get('volume').toLowerCase(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -986,17 +802,18 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
     );
   }
 
-  Map<MuscleGroup, MuscleStats> _calculateMuscleStats(List<Workout> workouts) {
-    final stats = <MuscleGroup, MuscleStats>{};
+  Map<MuscleCategory, MuscleStats> _calculateCategoryStats(List<Workout> workouts) {
+    final stats = <MuscleCategory, MuscleStats>{};
 
     for (var workout in workouts) {
       for (var exercise in workout.exercises) {
-        // Primary muscle - full credit for sets
-        if (!stats.containsKey(exercise.exercise.primaryMuscle)) {
-          stats[exercise.exercise.primaryMuscle] = MuscleStats();
+        // Primary muscle category - full credit
+        final primaryCategory = exercise.exercise.primaryCategory;
+        if (!stats.containsKey(primaryCategory)) {
+          stats[primaryCategory] = MuscleStats();
         }
 
-        final primaryStats = stats[exercise.exercise.primaryMuscle]!;
+        final primaryStats = stats[primaryCategory]!;
         primaryStats.sets += exercise.sets.length; // 1 point per set
 
         for (var set in exercise.sets) {
@@ -1004,7 +821,51 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
           primaryStats.volume += set.weight * set.reps;
         }
 
-        // Secondary muscles - half credit for sets
+        // Secondary muscles categories - half credit
+        for (var muscle in exercise.exercise.secondaryMuscles) {
+          final category = muscle.category;
+          if (!stats.containsKey(category)) {
+            stats[category] = MuscleStats();
+          }
+
+          final secondaryStats = stats[category]!;
+          secondaryStats.sets += exercise.sets.length * 0.5; // 0.5 points per set
+
+          for (var set in exercise.sets) {
+            secondaryStats.reps += set.reps;
+            secondaryStats.volume += (set.weight * set.reps) * 0.5; // 50% volume
+          }
+        }
+      }
+    }
+
+    // Sort by sets instead of volume
+    final sortedEntries = stats.entries.toList()
+      ..sort((a, b) => b.value.sets.compareTo(a.value.sets));
+
+    return Map.fromEntries(sortedEntries);
+  }
+
+  Map<DetailedMuscle, MuscleStats> _calculateDetailedMuscleStats(List<Workout> workouts) {
+    final stats = <DetailedMuscle, MuscleStats>{};
+
+    for (var workout in workouts) {
+      for (var exercise in workout.exercises) {
+        // Primary muscle - full credit
+        final primaryMuscle = exercise.exercise.primaryMuscle;
+        if (!stats.containsKey(primaryMuscle)) {
+          stats[primaryMuscle] = MuscleStats();
+        }
+
+        final primaryStats = stats[primaryMuscle]!;
+        primaryStats.sets += exercise.sets.length; // 1 point per set
+
+        for (var set in exercise.sets) {
+          primaryStats.reps += set.reps;
+          primaryStats.volume += set.weight * set.reps;
+        }
+
+        // Secondary muscles - half credit
         for (var muscle in exercise.exercise.secondaryMuscles) {
           if (!stats.containsKey(muscle)) {
             stats[muscle] = MuscleStats();
@@ -1015,15 +876,19 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
 
           for (var set in exercise.sets) {
             secondaryStats.reps += set.reps;
-            secondaryStats.volume += (set.weight * set.reps) * 0.5; // 50% volume for secondary
+            secondaryStats.volume += (set.weight * set.reps) * 0.5; // 50% volume
           }
         }
       }
     }
 
-    // Sort by volume
+    // Sort by category and then by sets within category
     final sortedEntries = stats.entries.toList()
-      ..sort((a, b) => b.value.volume.compareTo(a.value.volume));
+      ..sort((a, b) {
+        final categoryCompare = a.key.category.index.compareTo(b.key.category.index);
+        if (categoryCompare != 0) return categoryCompare;
+        return b.value.sets.compareTo(a.value.sets);
+      });
 
     return Map.fromEntries(sortedEntries);
   }
@@ -1031,17 +896,17 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   Map<String, ExerciseProgress> _calculateExerciseProgress() {
     final exerciseData = <String, List<ExerciseRecord>>{};
 
-    // Собираем все записи для каждого упражнения с датами
+    // Collect all records for each exercise
     for (var workout in _allWorkouts) {
       for (var exercise in workout.exercises) {
         if (!exerciseData.containsKey(exercise.exercise.name)) {
           exerciseData[exercise.exercise.name] = [];
         }
 
-        // Находим максимальный 1ПМ для этой тренировки
+        // Find max 1RM for this workout
         double max1RM = 0;
         for (var set in exercise.sets) {
-          // Формула Эпли: 1ПМ = вес × (1 + повторения / 30)
+          // Epley formula: 1RM = weight × (1 + reps / 30)
           double oneRepMax = set.weight * (1 + set.reps / 30.0);
           if (oneRepMax > max1RM) {
             max1RM = oneRepMax;
@@ -1059,12 +924,12 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
       }
     }
 
-    // Рассчитываем прогресс для упражнений, выполненных минимум дважды
+    // Calculate progress for exercises performed at least twice
     final progress = <String, ExerciseProgress>{};
 
     exerciseData.forEach((name, records) {
       if (records.length >= 2) {
-        // Сортируем по дате (от старых к новым)
+        // Sort by date (oldest to newest)
         records.sort((a, b) => a.date.compareTo(b.date));
 
         progress[name] = ExerciseProgress(
@@ -1075,7 +940,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
       }
     });
 
-    // Сортируем по проценту улучшения
+    // Sort by improvement percentage
     final sortedEntries = progress.entries.toList()
       ..sort((a, b) {
         final aImprovement = (a.value.currentMax - a.value.firstMax) / a.value.firstMax;
@@ -1086,52 +951,20 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
     return Map.fromEntries(sortedEntries);
   }
 
-  IconData _getMuscleGroupIcon(MuscleGroup muscle) {
-    switch (muscle) {
-      case MuscleGroup.chest:
+  IconData _getCategoryIcon(MuscleCategory category) {
+    switch (category) {
+      case MuscleCategory.chest:
         return Icons.airline_seat_flat;
-      case MuscleGroup.back:
-      case MuscleGroup.lats:
-      case MuscleGroup.middleBack:
-      case MuscleGroup.lowerBack:
+      case MuscleCategory.back:
         return Icons.accessibility_new;
-      case MuscleGroup.biceps:
-      case MuscleGroup.triceps:
-      case MuscleGroup.forearms:
-        return Icons.fitness_center;
-      case MuscleGroup.quadriceps:
-      case MuscleGroup.hamstrings:
-      case MuscleGroup.glutes:
-      case MuscleGroup.calves:
-        return Icons.directions_run;
-      case MuscleGroup.shoulders:
-      case MuscleGroup.frontDelts:
-      case MuscleGroup.sideDelts:
-      case MuscleGroup.rearDelts:
+      case MuscleCategory.shoulders:
         return Icons.accessibility;
-      case MuscleGroup.abs:
-      case MuscleGroup.obliques:
-        return Icons.self_improvement;
-      case MuscleGroup.traps:
-        return Icons.terrain;
-      default:
+      case MuscleCategory.biceps:
+      case MuscleCategory.triceps:
         return Icons.fitness_center;
+      case MuscleCategory.legs:
+        return Icons.directions_run;
     }
-  }
-
-  Color _getColorForIndex(int index) {
-    final colors = [
-      AppColors.primaryRed,
-      AppColors.success,
-      AppColors.orange,
-      const Color(0xFF3B82F6),
-      const Color(0xFF8B5CF6),
-      const Color(0xFFF59E0B),
-      const Color(0xFF14B8A6),
-      const Color(0xFFEC4899),
-    ];
-
-    return colors[index % colors.length];
   }
 
   String _formatDuration(Duration duration) {
@@ -1165,58 +998,7 @@ class ExerciseProgress {
   });
 }
 
-// Custom Pie Chart Painter
-class PieChartPainter extends CustomPainter {
-  final Map<String, double> data;
-
-  PieChartPainter({required this.data});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = math.min(size.width, size.height) / 2;
-    final paint = Paint()..style = PaintingStyle.fill;
-
-    double startAngle = -math.pi / 2;
-    int index = 0;
-
-    data.forEach((label, value) {
-      final sweepAngle = value * 2 * math.pi;
-      paint.color = _getColorForIndex(index);
-
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        startAngle,
-        sweepAngle,
-        true,
-        paint,
-      );
-
-      startAngle += sweepAngle;
-      index++;
-    });
-  }
-
-  Color _getColorForIndex(int index) {
-    final colors = [
-      AppColors.primaryRed,
-      AppColors.success,
-      AppColors.orange,
-      const Color(0xFF3B82F6),
-      const Color(0xFF8B5CF6),
-      const Color(0xFFF59E0B),
-      const Color(0xFF14B8A6),
-      const Color(0xFFEC4899),
-    ];
-
-    return colors[index % colors.length];
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-// Добавляем класс для хранения записей упражнений
+// Helper class for storing exercise records
 class ExerciseRecord {
   final double oneRepMax;
   final DateTime date;

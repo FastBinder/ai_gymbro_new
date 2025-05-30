@@ -18,10 +18,9 @@ class ExercisesPage extends StatefulWidget {
 class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateMixin {
   final DatabaseService _db = DatabaseService.instance;
   List<Exercise> _exercises = [];
-  MuscleGroup? _selectedMuscleGroup;
+  MuscleCategory? _selectedCategory;
   String _searchQuery = '';
   bool _isLoading = true;
-  bool _showSecondaryMuscles = false;
 
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
@@ -64,72 +63,33 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
     }
   }
 
-  List<MuscleGroup> _getAvailableMuscleGroups(LocalizationService loc) {
-    final groups = <MuscleGroup>{};
-    for (final exercise in _exercises) {
-      groups.add(exercise.primaryMuscle);
-      if (_showSecondaryMuscles) {
-        groups.addAll(exercise.secondaryMuscles);
-      }
-    }
-
-    // Сортируем по локализованным названиям
-    final groupsList = groups.toList();
-    groupsList.sort((a, b) {
-      final aName = loc.get(a.localizationKey);
-      final bName = loc.get(b.localizationKey);
-      return aName.compareTo(bName);
-    });
-
-    return groupsList;
-  }
-
   List<Exercise> get _filteredExercises {
     return _exercises.where((exercise) {
-      final matchesMuscleGroup = _selectedMuscleGroup == null ||
-          (_showSecondaryMuscles
-              ? exercise.involvesMuscle(_selectedMuscleGroup!)
-              : exercise.primaryMuscle == _selectedMuscleGroup);
+      final matchesCategory = _selectedCategory == null ||
+          exercise.involvesCategory(_selectedCategory!);
       final matchesSearch = exercise.name.toLowerCase().contains(_searchQuery.toLowerCase());
-      return matchesMuscleGroup && matchesSearch;
+      return matchesCategory && matchesSearch;
     }).toList();
   }
 
-  // Иконки для групп мышц
-  IconData _getMuscleGroupIcon(MuscleGroup muscleGroup) {
-    switch (muscleGroup) {
-      case MuscleGroup.chest:
+  // Иконки для категорий мышц
+  IconData _getCategoryIcon(MuscleCategory category) {
+    switch (category) {
+      case MuscleCategory.chest:
         return Icons.airline_seat_flat;
-      case MuscleGroup.back:
-      case MuscleGroup.lats:
-      case MuscleGroup.middleBack:
-      case MuscleGroup.lowerBack:
+      case MuscleCategory.back:
         return Icons.accessibility_new;
-      case MuscleGroup.biceps:
-      case MuscleGroup.triceps:
-      case MuscleGroup.forearms:
-        return Icons.fitness_center;
-      case MuscleGroup.quadriceps:
-      case MuscleGroup.hamstrings:
-      case MuscleGroup.glutes:
-      case MuscleGroup.calves:
-        return Icons.directions_run;
-      case MuscleGroup.shoulders:
-      case MuscleGroup.frontDelts:
-      case MuscleGroup.sideDelts:
-      case MuscleGroup.rearDelts:
+      case MuscleCategory.shoulders:
         return Icons.accessibility;
-      case MuscleGroup.abs:
-      case MuscleGroup.obliques:
-        return Icons.self_improvement;
-      case MuscleGroup.traps:
-        return Icons.terrain;
-      default:
+      case MuscleCategory.biceps:
+      case MuscleCategory.triceps:
         return Icons.fitness_center;
+      case MuscleCategory.legs:
+        return Icons.directions_run;
     }
   }
 
-  String _getLocalizedMuscleGroupsDisplay(Exercise exercise, LocalizationService loc) {
+  String _getLocalizedMuscleDisplay(Exercise exercise, LocalizationService loc) {
     final primary = loc.get(exercise.primaryMuscle.localizationKey);
     if (exercise.secondaryMuscles.isEmpty) {
       return primary;
@@ -150,7 +110,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
         child: Column(
           children: [
             _buildHeader(),
-            if (!_isLoading) _buildMuscleGroupFilter(),
+            if (!_isLoading) _buildCategoryFilter(),
             Expanded(
               child: _isLoading
                   ? const Center(
@@ -258,63 +218,13 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
               });
             },
           ),
-          const SizedBox(height: 12),
-          // Переключатель для показа побочных мышц
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _showSecondaryMuscles ? Icons.visibility : Icons.visibility_off,
-                  size: 20,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  loc.get('show_secondary_muscles'),
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Switch(
-                  value: _showSecondaryMuscles,
-                  onChanged: (value) {
-                    setState(() {
-                      _showSecondaryMuscles = value;
-                      if (!value && _selectedMuscleGroup != null) {
-                        // Проверяем, есть ли выбранная группа в основных
-                        final hasPrimary = _exercises.any(
-                                (e) => e.primaryMuscle == _selectedMuscleGroup
-                        );
-                        if (!hasPrimary) {
-                          _selectedMuscleGroup = null;
-                        }
-                      }
-                    });
-                  },
-                  activeColor: AppColors.primaryRed,
-                  inactiveThumbColor: AppColors.textMuted,
-                  inactiveTrackColor: AppColors.border,
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildMuscleGroupFilter() {
+  Widget _buildCategoryFilter() {
     final loc = context.watch<LocalizationService>();
-    final groups = _getAvailableMuscleGroups(loc);
 
     return Container(
       height: 50,
@@ -322,27 +232,27 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: groups.length + 1,
+        itemCount: MuscleCategory.values.length + 1,
         itemBuilder: (context, index) {
           if (index == 0) {
             return CategoryChip(
               label: loc.get('all'),
-              isSelected: _selectedMuscleGroup == null,
+              isSelected: _selectedCategory == null,
               onTap: () {
                 setState(() {
-                  _selectedMuscleGroup = null;
+                  _selectedCategory = null;
                 });
               },
             );
           }
 
-          final group = groups[index - 1];
+          final category = MuscleCategory.values[index - 1];
           return CategoryChip(
-            label: loc.get(group.localizationKey),
-            isSelected: group == _selectedMuscleGroup,
+            label: loc.get(category.localizationKey),
+            isSelected: category == _selectedCategory,
             onTap: () {
               setState(() {
-                _selectedMuscleGroup = group;
+                _selectedCategory = category;
               });
             },
           );
@@ -379,7 +289,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Icon(
-                    isCustom ? Icons.person : _getMuscleGroupIcon(exercise.primaryMuscle),
+                    isCustom ? Icons.person : _getCategoryIcon(exercise.primaryCategory),
                     color: isCustom ? AppColors.orange : AppColors.primaryRed,
                     size: 28,
                   ),
@@ -428,7 +338,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        _getLocalizedMuscleGroupsDisplay(exercise, loc),
+                        _getLocalizedMuscleDisplay(exercise, loc),
                         style: const TextStyle(
                           fontSize: 14,
                           color: AppColors.textSecondary,
@@ -527,7 +437,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Icon(
-                            isCustom ? Icons.person : _getMuscleGroupIcon(exercise.primaryMuscle),
+                            isCustom ? Icons.person : _getCategoryIcon(exercise.primaryCategory),
                             color: isCustom ? AppColors.orange : AppColors.primaryRed,
                             size: 32,
                           ),
@@ -572,7 +482,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              _buildMuscleGroupsDisplay(exercise),
+                              _buildMuscleDisplay(exercise),
                             ],
                           ),
                         ),
@@ -766,14 +676,14 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
     );
   }
 
-  Widget _buildMuscleGroupsDisplay(Exercise exercise) {
+  Widget _buildMuscleDisplay(Exercise exercise) {
     final loc = context.watch<LocalizationService>();
 
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        // Основная группа мышц
+        // Основная мышца
         Container(
           padding: const EdgeInsets.symmetric(
             horizontal: 12,
@@ -806,7 +716,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
             ],
           ),
         ),
-        // Побочные группы мышц
+        // Вспомогательные мышцы
         ...exercise.secondaryMuscles.map((muscle) => Container(
           padding: const EdgeInsets.symmetric(
             horizontal: 10,

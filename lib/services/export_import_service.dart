@@ -23,7 +23,7 @@ class ExportImportService {
 
       // Создаем JSON структуру
       final exportData = {
-        'version': 2, // Увеличиваем версию для новой структуры
+        'version': 3, // Увеличиваем версию для новой структуры
         'exportDate': DateTime.now().toIso8601String(),
         'workouts': workouts.map((w) => _workoutToJson(w)).toList(),
         'customExercises': customExercises.map((e) => _exerciseToJson(e)).toList(),
@@ -122,23 +122,34 @@ class ExportImportService {
 
       // Если не нашли, создаем из данных в JSON
       if (exercise == null) {
-        if (version == 2) {
-          // Новая версия с primaryMuscle и secondaryMuscles
+        if (version >= 3) {
+          // Новая версия с DetailedMuscle
           exercise = Exercise(
             id: e['exerciseId'],
             name: e['exerciseName'],
-            primaryMuscle: MuscleGroup.fromString(e['exercisePrimaryMuscle']),
+            primaryMuscle: DetailedMuscle.fromString(e['exercisePrimaryMuscle']),
             secondaryMuscles: (e['exerciseSecondaryMuscles'] as List?)
-                ?.map((m) => MuscleGroup.fromString(m))
+                ?.map((m) => DetailedMuscle.fromString(m))
+                .toList() ?? [],
+            description: e['exerciseDescription'],
+          );
+        } else if (version == 2) {
+          // Версия 2 с MuscleGroup
+          exercise = Exercise(
+            id: e['exerciseId'],
+            name: e['exerciseName'],
+            primaryMuscle: _mapOldMuscleGroupToDetailedMuscle(e['exercisePrimaryMuscle']),
+            secondaryMuscles: (e['exerciseSecondaryMuscles'] as List?)
+                ?.map((m) => _mapOldMuscleGroupToDetailedMuscle(m))
                 .toList() ?? [],
             description: e['exerciseDescription'],
           );
         } else {
-          // Старая версия с muscleGroup
+          // Старая версия 1
           exercise = Exercise(
             id: e['exerciseId'],
             name: e['exerciseName'],
-            primaryMuscle: _mapOldMuscleGroupToEnum(e['exerciseMuscleGroup']),
+            primaryMuscle: _mapOldMuscleGroupToDetailedMuscle(e['exerciseMuscleGroup']),
             secondaryMuscles: [],
             description: e['exerciseDescription'],
           );
@@ -179,14 +190,31 @@ class ExportImportService {
 
   // Конвертация JSON в Exercise
   static Exercise _exerciseFromJson(Map<String, dynamic> json, int version) {
-    if (version == 2) {
-      // Новая версия с primaryMuscle и secondaryMuscles
+    if (version >= 3) {
+      // Новая версия с DetailedMuscle
       return Exercise(
         id: json['id'],
         name: json['name'],
-        primaryMuscle: MuscleGroup.fromString(json['primaryMuscle']),
+        primaryMuscle: DetailedMuscle.fromString(json['primaryMuscle']),
         secondaryMuscles: (json['secondaryMuscles'] as List?)
-            ?.map((m) => MuscleGroup.fromString(m))
+            ?.map((m) => DetailedMuscle.fromString(m))
+            .toList() ?? [],
+        description: json['description'],
+        instructions: json['instructions'] != null
+            ? List<String>.from(json['instructions'])
+            : null,
+        tips: json['tips'] != null
+            ? List<String>.from(json['tips'])
+            : null,
+      );
+    } else if (version == 2) {
+      // Версия 2 с MuscleGroup
+      return Exercise(
+        id: json['id'],
+        name: json['name'],
+        primaryMuscle: _mapOldMuscleGroupToDetailedMuscle(json['primaryMuscle']),
+        secondaryMuscles: (json['secondaryMuscles'] as List?)
+            ?.map((m) => _mapOldMuscleGroupToDetailedMuscle(m))
             .toList() ?? [],
         description: json['description'],
         instructions: json['instructions'] != null
@@ -197,11 +225,11 @@ class ExportImportService {
             : null,
       );
     } else {
-      // Старая версия с muscleGroup
+      // Старая версия 1
       return Exercise(
         id: json['id'],
         name: json['name'],
-        primaryMuscle: _mapOldMuscleGroupToEnum(json['muscleGroup']),
+        primaryMuscle: _mapOldMuscleGroupToDetailedMuscle(json['muscleGroup']),
         secondaryMuscles: [],
         description: json['description'],
         instructions: json['instructions'] != null
@@ -215,21 +243,44 @@ class ExportImportService {
   }
 
   // Мапинг старых групп мышц на новые
-  static MuscleGroup _mapOldMuscleGroupToEnum(String oldMuscleGroup) {
+  static DetailedMuscle _mapOldMuscleGroupToDetailedMuscle(String oldMuscleGroup) {
     final mapping = {
-      'Chest': MuscleGroup.chest,
-      'Back': MuscleGroup.back,
-      'Legs': MuscleGroup.quadriceps,
-      'Shoulders': MuscleGroup.shoulders,
-      'Arms': MuscleGroup.biceps,
-      'Core': MuscleGroup.abs,
-      'Full Body': MuscleGroup.chest,
-      'Cardio': MuscleGroup.abs,
-      'Other': MuscleGroup.chest,
+      // Версия 1 (старые категории)
+      'Chest': DetailedMuscle.middleChest,
+      'Back': DetailedMuscle.lats,
+      'Legs': DetailedMuscle.quadriceps,
+      'Shoulders': DetailedMuscle.frontDelts,
+      'Arms': DetailedMuscle.biceps,
+      'Core': DetailedMuscle.abs,
+      'Full Body': DetailedMuscle.middleChest,
+      'Cardio': DetailedMuscle.abs,
+      'Other': DetailedMuscle.middleChest,
+
+      // Версия 2 (MuscleGroup enum)
+      'chest': DetailedMuscle.middleChest,
+      'back': DetailedMuscle.lats,
+      'shoulders': DetailedMuscle.frontDelts,
+      'biceps': DetailedMuscle.biceps,
+      'triceps': DetailedMuscle.longHeadTriceps,
+      'forearms': DetailedMuscle.forearms,
+      'abs': DetailedMuscle.abs,
+      'obliques': DetailedMuscle.obliques,
+      'quadriceps': DetailedMuscle.quadriceps,
+      'hamstrings': DetailedMuscle.hamstrings,
+      'glutes': DetailedMuscle.glutes,
+      'calves': DetailedMuscle.calves,
+      'traps': DetailedMuscle.upperTraps,
+      'lats': DetailedMuscle.lats,
+      'middleBack': DetailedMuscle.rhomboids,
+      'lowerBack': DetailedMuscle.lowerBack,
+      'frontDelts': DetailedMuscle.frontDelts,
+      'sideDelts': DetailedMuscle.sideDelts,
+      'rearDelts': DetailedMuscle.rearDelts,
     };
 
-    return mapping[oldMuscleGroup] ?? MuscleGroup.chest;
+    return mapping[oldMuscleGroup] ?? DetailedMuscle.middleChest;
   }
+
 
   // Получить размер данных
   static Future<String> getDataSize() async {

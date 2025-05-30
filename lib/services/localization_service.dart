@@ -144,26 +144,61 @@ class LocalizationService extends ChangeNotifier {
       'import_error': 'Import error',
       'language_changed': 'Language changed. Please restart the app to apply changes.',
 
-      // Muscle Groups
-      'muscle_chest': 'Chest',
-      'muscle_back': 'Back',
-      'muscle_shoulders': 'Shoulders',
+      // Muscle Categories
+      'category_chest': 'Chest',
+      'category_back': 'Back',
+      'category_shoulders': 'Shoulders',
+      'category_biceps': 'Biceps',
+      'category_triceps': 'Triceps',
+      'category_legs': 'Legs',
+
+      // Detailed Muscles - Chest
+      'muscle_upperChest': 'Upper Chest',
+      'muscle_middleChest': 'Middle Chest',
+      'muscle_lowerChest': 'Lower Chest',
+      'muscle_innerChest': 'Inner Chest',
+      'muscle_outerChest': 'Outer Chest',
+
+      // Detailed Muscles - Back
+      'muscle_lats': 'Lats',
+      'muscle_upperTraps': 'Upper Traps',
+      'muscle_middleTraps': 'Middle Traps',
+      'muscle_lowerTraps': 'Lower Traps',
+      'muscle_rhomboids': 'Rhomboids',
+      'muscle_teresMajor': 'Teres Major',
+      'muscle_teresMinor': 'Teres Minor',
+      'muscle_infraspinatus': 'Infraspinatus',
+      'muscle_erectorSpinae': 'Erector Spinae',
+      'muscle_lowerBack': 'Lower Back',
+
+      // Detailed Muscles - Shoulders
+      'muscle_frontDelts': 'Front Delts',
+      'muscle_sideDelts': 'Side Delts',
+      'muscle_rearDelts': 'Rear Delts',
+
+      // Detailed Muscles - Arms
       'muscle_biceps': 'Biceps',
-      'muscle_triceps': 'Triceps',
+      'muscle_longHeadTriceps': 'Long Head',
+      'muscle_lateralHeadTriceps': 'Lateral Head',
+      'muscle_medialHeadTriceps': 'Medial Head',
       'muscle_forearms': 'Forearms',
-      'muscle_abs': 'Abs',
-      'muscle_obliques': 'Obliques',
+
+      // Detailed Muscles - Legs
       'muscle_quadriceps': 'Quadriceps',
       'muscle_hamstrings': 'Hamstrings',
       'muscle_glutes': 'Glutes',
       'muscle_calves': 'Calves',
-      'muscle_traps': 'Traps',
-      'muscle_lats': 'Lats',
-      'muscle_middle_back': 'Middle Back',
-      'muscle_lower_back': 'Lower Back',
-      'muscle_front_delts': 'Front Delts',
-      'muscle_side_delts': 'Side Delts',
-      'muscle_rear_delts': 'Rear Delts',
+      'muscle_adductors': 'Adductors',
+      'muscle_abductors': 'Abductors',
+
+      // Detailed Muscles - Core
+      'muscle_abs': 'Abs',
+      'muscle_obliques': 'Obliques',
+
+      // Progress View Toggle
+      'view_mode': 'View Mode',
+      'basic_muscles': 'Basic Muscles',
+      'detailed_muscles': 'Detailed Muscles',
     },
 
     'ru': {
@@ -277,25 +312,61 @@ class LocalizationService extends ChangeNotifier {
       'language_changed': 'Язык изменен. Перезапустите приложение для применения изменений.',
 
       // Muscle Groups
-      'muscle_chest': 'Грудь',
-      'muscle_back': 'Спина',
-      'muscle_shoulders': 'Плечи',
+      // Muscle Categories
+      'category_chest': 'Грудь',
+      'category_back': 'Спина',
+      'category_shoulders': 'Плечи',
+      'category_biceps': 'Бицепс',
+      'category_triceps': 'Трицепс',
+      'category_legs': 'Ноги',
+
+      // Detailed Muscles - Chest
+      'muscle_upperChest': 'Верх груди',
+      'muscle_middleChest': 'Середина груди',
+      'muscle_lowerChest': 'Низ груди',
+      'muscle_innerChest': 'Внутренняя часть груди',
+      'muscle_outerChest': 'Внешняя часть груди',
+
+      // Detailed Muscles - Back
+      'muscle_lats': 'Широчайшие',
+      'muscle_upperTraps': 'Верхние трапеции',
+      'muscle_middleTraps': 'Средние трапеции',
+      'muscle_lowerTraps': 'Нижние трапеции',
+      'muscle_rhomboids': 'Ромбовидные',
+      'muscle_teresMajor': 'Большая круглая',
+      'muscle_teresMinor': 'Малая круглая',
+      'muscle_infraspinatus': 'Подостная',
+      'muscle_erectorSpinae': 'Разгибатели спины',
+      'muscle_lowerBack': 'Поясница',
+
+      // Detailed Muscles - Shoulders
+      'muscle_frontDelts': 'Передние дельты',
+      'muscle_sideDelts': 'Средние дельты',
+      'muscle_rearDelts': 'Задние дельты',
+
+      // Detailed Muscles - Arms
       'muscle_biceps': 'Бицепс',
-      'muscle_triceps': 'Трицепс',
+      'muscle_longHeadTriceps': 'Длинная головка',
+      'muscle_lateralHeadTriceps': 'Латеральная головка',
+      'muscle_medialHeadTriceps': 'Медиальная головка',
       'muscle_forearms': 'Предплечья',
-      'muscle_abs': 'Пресс',
-      'muscle_obliques': 'Косые мышцы',
+
+      // Detailed Muscles - Legs
       'muscle_quadriceps': 'Квадрицепс',
       'muscle_hamstrings': 'Бицепс бедра',
       'muscle_glutes': 'Ягодицы',
       'muscle_calves': 'Икры',
-      'muscle_traps': 'Трапеция',
-      'muscle_lats': 'Широчайшие',
-      'muscle_middle_back': 'Середина спины',
-      'muscle_lower_back': 'Поясница',
-      'muscle_front_delts': 'Передние дельты',
-      'muscle_side_delts': 'Средние дельты',
-      'muscle_rear_delts': 'Задние дельты',
+      'muscle_adductors': 'Приводящие',
+      'muscle_abductors': 'Отводящие',
+
+      // Detailed Muscles - Core
+      'muscle_abs': 'Пресс',
+      'muscle_obliques': 'Косые мышцы',
+
+      // Progress View Toggle
+      'view_mode': 'Режим отображения',
+      'basic_muscles': 'Основные мышцы',
+      'detailed_muscles': 'Детальные мышцы',
     },
   };
 }

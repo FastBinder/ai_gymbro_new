@@ -1,73 +1,140 @@
 // lib/models/exercise.dart
 
-/// Перечисление всех групп мышц для type safety
-enum MuscleGroup {
+/// Основные группы мышц для фильтрации
+enum MuscleCategory {
   chest,
   back,
   shoulders,
   biceps,
   triceps,
-  forearms,
-  abs,
-  obliques,
-  quadriceps,
-  hamstrings,
-  glutes,
-  calves,
-  traps,
-  lats,
-  middleBack,
-  lowerBack,
-  frontDelts,
-  sideDelts,
-  rearDelts;
+  legs;
 
-  // Для сериализации/десериализации
-  static MuscleGroup fromString(String value) {
-    return MuscleGroup.values.firstWhere(
+  static MuscleCategory fromString(String value) {
+    return MuscleCategory.values.firstWhere(
           (e) => e.name == value,
-      orElse: () => MuscleGroup.chest,
+      orElse: () => MuscleCategory.chest,
     );
   }
 }
 
-// Extension для получения ключа локализации
-extension MuscleGroupExtension on MuscleGroup {
-  String get localizationKey => 'muscle_$name';
+/// Детальные мышцы
+enum DetailedMuscle {
+  // Грудь
+  upperChest,
+  middleChest,
+  lowerChest,
+  innerChest,
+  outerChest,
 
-  // Для обратной совместимости, пока не обновите все использования
-  @Deprecated('Use localization service instead')
-  String get russianName {
-    switch (this) {
-      case MuscleGroup.chest: return 'Грудь';
-      case MuscleGroup.back: return 'Спина';
-      case MuscleGroup.shoulders: return 'Плечи';
-      case MuscleGroup.biceps: return 'Бицепс';
-      case MuscleGroup.triceps: return 'Трицепс';
-      case MuscleGroup.forearms: return 'Предплечья';
-      case MuscleGroup.abs: return 'Пресс';
-      case MuscleGroup.obliques: return 'Косые мышцы';
-      case MuscleGroup.quadriceps: return 'Квадрицепс';
-      case MuscleGroup.hamstrings: return 'Бицепс бедра';
-      case MuscleGroup.glutes: return 'Ягодицы';
-      case MuscleGroup.calves: return 'Икры';
-      case MuscleGroup.traps: return 'Трапеция';
-      case MuscleGroup.lats: return 'Широчайшие';
-      case MuscleGroup.middleBack: return 'Середина спины';
-      case MuscleGroup.lowerBack: return 'Поясница';
-      case MuscleGroup.frontDelts: return 'Передние дельты';
-      case MuscleGroup.sideDelts: return 'Средние дельты';
-      case MuscleGroup.rearDelts: return 'Задние дельты';
-    }
+  // Спина
+  lats,
+  upperTraps,
+  middleTraps,
+  lowerTraps,
+  rhomboids,
+  teresMajor,
+  teresMinor,
+  infraspinatus,
+  erectorSpinae,
+  lowerBack,
+
+  // Плечи
+  frontDelts,
+  sideDelts,
+  rearDelts,
+
+  // Руки
+  biceps,
+  longHeadTriceps,
+  lateralHeadTriceps,
+  medialHeadTriceps,
+  forearms,
+
+  // Ноги
+  quadriceps,
+  hamstrings,
+  glutes,
+  calves,
+  adductors,
+  abductors,
+
+  // Корпус
+  abs,
+  obliques;
+
+  static DetailedMuscle fromString(String value) {
+    return DetailedMuscle.values.firstWhere(
+          (e) => e.name == value,
+      orElse: () => DetailedMuscle.middleChest,
+    );
   }
 }
 
-/// Модель упражнения с основной и побочными группами мышц
+// Extension для получения категории из детальной мышцы
+extension DetailedMuscleExtension on DetailedMuscle {
+  MuscleCategory get category {
+    switch (this) {
+      case DetailedMuscle.upperChest:
+      case DetailedMuscle.middleChest:
+      case DetailedMuscle.lowerChest:
+      case DetailedMuscle.innerChest:
+      case DetailedMuscle.outerChest:
+        return MuscleCategory.chest;
+
+      case DetailedMuscle.lats:
+      case DetailedMuscle.upperTraps:
+      case DetailedMuscle.middleTraps:
+      case DetailedMuscle.lowerTraps:
+      case DetailedMuscle.rhomboids:
+      case DetailedMuscle.teresMajor:
+      case DetailedMuscle.teresMinor:
+      case DetailedMuscle.infraspinatus:
+      case DetailedMuscle.erectorSpinae:
+      case DetailedMuscle.lowerBack:
+        return MuscleCategory.back;
+
+      case DetailedMuscle.frontDelts:
+      case DetailedMuscle.sideDelts:
+      case DetailedMuscle.rearDelts:
+        return MuscleCategory.shoulders;
+
+      case DetailedMuscle.biceps:
+        return MuscleCategory.biceps;
+
+      case DetailedMuscle.longHeadTriceps:
+      case DetailedMuscle.lateralHeadTriceps:
+      case DetailedMuscle.medialHeadTriceps:
+        return MuscleCategory.triceps;
+
+      case DetailedMuscle.forearms:
+        return MuscleCategory.biceps; // Группируем с бицепсом
+
+      case DetailedMuscle.quadriceps:
+      case DetailedMuscle.hamstrings:
+      case DetailedMuscle.glutes:
+      case DetailedMuscle.calves:
+      case DetailedMuscle.adductors:
+      case DetailedMuscle.abductors:
+      case DetailedMuscle.abs:
+      case DetailedMuscle.obliques:
+        return MuscleCategory.legs;
+    }
+  }
+
+  String get localizationKey => 'muscle_$name';
+}
+
+// Extension для категорий
+extension MuscleCategoryExtension on MuscleCategory {
+  String get localizationKey => 'category_$name';
+}
+
+/// Модель упражнения с детальными мышцами
 class Exercise {
   final String id;
   final String name;
-  final MuscleGroup primaryMuscle;
-  final List<MuscleGroup> secondaryMuscles;
+  final DetailedMuscle primaryMuscle;
+  final List<DetailedMuscle> secondaryMuscles;
   final String description;
   final String? imageUrl;
   final String? videoUrl;
@@ -86,24 +153,25 @@ class Exercise {
     this.tips,
   });
 
-  /// Все задействованные мышцы (основная + побочные)
-  List<MuscleGroup> get allMuscles => [primaryMuscle, ...secondaryMuscles];
+  /// Все задействованные мышцы
+  List<DetailedMuscle> get allMuscles => [primaryMuscle, ...secondaryMuscles];
 
-  /// Проверка, задействована ли определенная группа мышц
-  bool involvesMuscle(MuscleGroup muscle) {
-    return primaryMuscle == muscle || secondaryMuscles.contains(muscle);
+  /// Получить все задействованные категории
+  Set<MuscleCategory> get involvedCategories {
+    return allMuscles.map((m) => m.category).toSet();
   }
 
-  /// Получить все группы мышц как строку для отображения (deprecated)
-  @Deprecated('Use UI layer with localization service')
-  String get muscleGroupsDisplay {
-    if (secondaryMuscles.isEmpty) {
-      return primaryMuscle.russianName;
-    }
-    final secondary = secondaryMuscles
-        .map((m) => m.russianName)
-        .join(', ');
-    return '${primaryMuscle.russianName} (${secondary})';
+  /// Основная категория
+  MuscleCategory get primaryCategory => primaryMuscle.category;
+
+  /// Проверка, задействована ли категория
+  bool involvesCategory(MuscleCategory category) {
+    return involvedCategories.contains(category);
+  }
+
+  /// Проверка, задействована ли определенная мышца
+  bool involvesMuscle(DetailedMuscle muscle) {
+    return primaryMuscle == muscle || secondaryMuscles.contains(muscle);
   }
 
   Map<String, dynamic> toMap() {
@@ -111,11 +179,11 @@ class Exercise {
       'id': id,
       'name': name,
       'primaryMuscle': primaryMuscle.name,
-      'secondaryMuscles': secondaryMuscles.map((m) => m.name).join('|'), // Изменен разделитель
+      'secondaryMuscles': secondaryMuscles.map((m) => m.name).join('|'),
       'description': description,
       'imageUrl': imageUrl,
       'videoUrl': videoUrl,
-      'instructions': instructions?.join('|||'), // Уникальный разделитель
+      'instructions': instructions?.join('|||'),
       'tips': tips?.join('|||'),
     };
   }
@@ -124,11 +192,11 @@ class Exercise {
     return Exercise(
       id: map['id'],
       name: map['name'],
-      primaryMuscle: MuscleGroup.fromString(map['primaryMuscle']),
+      primaryMuscle: DetailedMuscle.fromString(map['primaryMuscle']),
       secondaryMuscles: (map['secondaryMuscles'] as String?)
           ?.split('|')
           .where((s) => s.isNotEmpty)
-          .map((s) => MuscleGroup.fromString(s))
+          .map((s) => DetailedMuscle.fromString(s))
           .toList() ??
           [],
       description: map['description'],
@@ -148,8 +216,8 @@ class Exercise {
   Exercise copyWith({
     String? id,
     String? name,
-    MuscleGroup? primaryMuscle,
-    List<MuscleGroup>? secondaryMuscles,
+    DetailedMuscle? primaryMuscle,
+    List<DetailedMuscle>? secondaryMuscles,
     String? description,
     String? imageUrl,
     String? videoUrl,
@@ -170,15 +238,19 @@ class Exercise {
   }
 }
 
-/// База данных упражнений (минимальная для тестирования)
+/// База данных упражнений (примеры)
 class ExerciseDatabase {
   static final List<Exercise> exercises = [
-    // Тестовое упражнение 1: Жим лежа
+    // Упражнения на грудь
     Exercise(
       id: '1',
       name: 'Barbell Bench Press',
-      primaryMuscle: MuscleGroup.chest,
-      secondaryMuscles: [MuscleGroup.triceps, MuscleGroup.frontDelts],
+      primaryMuscle: DetailedMuscle.middleChest,
+      secondaryMuscles: [
+        DetailedMuscle.longHeadTriceps,
+        DetailedMuscle.lateralHeadTriceps,
+        DetailedMuscle.frontDelts
+      ],
       description: 'Fundamental exercise for chest development',
       instructions: [
         'Lie on bench with eyes under the bar',
@@ -193,15 +265,27 @@ class ExerciseDatabase {
       ],
     ),
 
-    // Тестовое упражнение 2: Подтягивания
     Exercise(
       id: '2',
-      name: 'Pull-ups',
-      primaryMuscle: MuscleGroup.lats,
+      name: 'Incline Dumbbell Press',
+      primaryMuscle: DetailedMuscle.upperChest,
       secondaryMuscles: [
-        MuscleGroup.middleBack,
-        MuscleGroup.biceps,
-        MuscleGroup.rearDelts
+        DetailedMuscle.frontDelts,
+        DetailedMuscle.longHeadTriceps
+      ],
+      description: 'Targets upper chest development',
+    ),
+
+    // Упражнения на спину
+    Exercise(
+      id: '3',
+      name: 'Pull-ups',
+      primaryMuscle: DetailedMuscle.lats,
+      secondaryMuscles: [
+        DetailedMuscle.biceps,
+        DetailedMuscle.rhomboids,
+        DetailedMuscle.middleTraps,
+        DetailedMuscle.rearDelts
       ],
       description: 'Compound exercise for lats and upper back',
       instructions: [
@@ -211,15 +295,29 @@ class ExerciseDatabase {
       ],
     ),
 
-    // Тестовое упражнение 3: Приседания
     Exercise(
-      id: '3',
-      name: 'Barbell Squat',
-      primaryMuscle: MuscleGroup.quadriceps,
+      id: '4',
+      name: 'Barbell Row',
+      primaryMuscle: DetailedMuscle.rhomboids,
       secondaryMuscles: [
-        MuscleGroup.glutes,
-        MuscleGroup.hamstrings,
-        MuscleGroup.calves
+        DetailedMuscle.lats,
+        DetailedMuscle.middleTraps,
+        DetailedMuscle.biceps,
+        DetailedMuscle.rearDelts
+      ],
+      description: 'Compound back exercise for thickness',
+    ),
+
+    // Упражнения на ноги
+    Exercise(
+      id: '5',
+      name: 'Barbell Squat',
+      primaryMuscle: DetailedMuscle.quadriceps,
+      secondaryMuscles: [
+        DetailedMuscle.glutes,
+        DetailedMuscle.hamstrings,
+        DetailedMuscle.calves,
+        DetailedMuscle.erectorSpinae
       ],
       description: 'King of all leg exercises',
       instructions: [
@@ -228,29 +326,87 @@ class ExerciseDatabase {
         'Drive up through heels'
       ],
     ),
+
+    // Упражнения на плечи
+    Exercise(
+      id: '6',
+      name: 'Overhead Press',
+      primaryMuscle: DetailedMuscle.frontDelts,
+      secondaryMuscles: [
+        DetailedMuscle.sideDelts,
+        DetailedMuscle.longHeadTriceps,
+        DetailedMuscle.upperChest
+      ],
+      description: 'Fundamental shoulder exercise',
+    ),
+
+    // Упражнения на бицепс
+    Exercise(
+      id: '7',
+      name: 'Barbell Curl',
+      primaryMuscle: DetailedMuscle.biceps,
+      secondaryMuscles: [
+        DetailedMuscle.forearms
+      ],
+      description: 'Classic bicep builder',
+    ),
+
+    // Упражнения на трицепс
+    Exercise(
+      id: '8',
+      name: 'Close-Grip Bench Press',
+      primaryMuscle: DetailedMuscle.longHeadTriceps,
+      secondaryMuscles: [
+        DetailedMuscle.lateralHeadTriceps,
+        DetailedMuscle.medialHeadTriceps,
+        DetailedMuscle.innerChest,
+        DetailedMuscle.frontDelts
+      ],
+      description: 'Compound tricep exercise',
+    ),
   ];
 
-  /// Получить упражнения по основной группе мышц
-  static List<Exercise> getByPrimaryMuscle(MuscleGroup muscle) {
+  // Маппинг старых MuscleGroup на новые DetailedMuscle для миграции
+  static final Map<String, DetailedMuscle> migrationMap = {
+    'chest': DetailedMuscle.middleChest,
+    'back': DetailedMuscle.lats,
+    'shoulders': DetailedMuscle.frontDelts,
+    'biceps': DetailedMuscle.biceps,
+    'triceps': DetailedMuscle.longHeadTriceps,
+    'forearms': DetailedMuscle.forearms,
+    'abs': DetailedMuscle.abs,
+    'obliques': DetailedMuscle.obliques,
+    'quadriceps': DetailedMuscle.quadriceps,
+    'hamstrings': DetailedMuscle.hamstrings,
+    'glutes': DetailedMuscle.glutes,
+    'calves': DetailedMuscle.calves,
+    'traps': DetailedMuscle.upperTraps,
+    'lats': DetailedMuscle.lats,
+    'middleBack': DetailedMuscle.rhomboids,
+    'lowerBack': DetailedMuscle.lowerBack,
+    'frontDelts': DetailedMuscle.frontDelts,
+    'sideDelts': DetailedMuscle.sideDelts,
+    'rearDelts': DetailedMuscle.rearDelts,
+  };
+
+  /// Получить упражнения по категории
+  static List<Exercise> getByCategory(MuscleCategory category) {
     return exercises
-        .where((exercise) => exercise.primaryMuscle == muscle)
+        .where((exercise) => exercise.involvesCategory(category))
         .toList();
   }
 
-  /// Получить все упражнения, которые задействуют определенную группу мышц
-  static List<Exercise> getByMuscleInvolvement(MuscleGroup muscle) {
+  /// Получить упражнения по основной категории
+  static List<Exercise> getByPrimaryCategory(MuscleCategory category) {
+    return exercises
+        .where((exercise) => exercise.primaryCategory == category)
+        .toList();
+  }
+
+  /// Получить упражнения по детальной мышце
+  static List<Exercise> getByMuscle(DetailedMuscle muscle) {
     return exercises
         .where((exercise) => exercise.involvesMuscle(muscle))
         .toList();
-  }
-
-  /// Получить уникальные группы мышц из всех упражнений
-  static Set<MuscleGroup> getAllUsedMuscleGroups() {
-    final groups = <MuscleGroup>{};
-    for (final exercise in exercises) {
-      groups.add(exercise.primaryMuscle);
-      groups.addAll(exercise.secondaryMuscles);
-    }
-    return groups;
   }
 }

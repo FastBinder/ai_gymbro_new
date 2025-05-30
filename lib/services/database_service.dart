@@ -85,36 +85,49 @@ class DatabaseService {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion == 1 && newVersion == 2) {
-      // Миграция с версии 1 на версию 2
+    if (oldVersion < 3) {
+      // Миграция на версию 3 с новой системой мышц
       await db.transaction((txn) async {
         // Создаем временную таблицу с новой структурой
         await txn.execute('''
-          CREATE TABLE exercises_new(
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            primaryMuscle TEXT NOT NULL,
-            secondaryMuscles TEXT,
-            description TEXT NOT NULL,
-            imageUrl TEXT,
-            videoUrl TEXT,
-            instructions TEXT,
-            tips TEXT,
-            isCustom INTEGER DEFAULT 0
-          )
-        ''');
+        CREATE TABLE exercises_new(
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          primaryMuscle TEXT NOT NULL,
+          secondaryMuscles TEXT,
+          description TEXT NOT NULL,
+          imageUrl TEXT,
+          videoUrl TEXT,
+          instructions TEXT,
+          tips TEXT,
+          isCustom INTEGER DEFAULT 0
+        )
+      ''');
 
-        // Копируем данные из старой таблицы
+        // Копируем данные из старой таблицы с миграцией
         final exercises = await txn.query('exercises');
         for (final exercise in exercises) {
-          // Мапим старые группы мышц на новые enum значения
-          String primaryMuscle = _mapOldMuscleGroupToEnum(exercise['muscleGroup'] as String);
+          // Мапим старые мышцы на новые
+          String oldPrimary = exercise['primaryMuscle'] as String;
+          String newPrimary = _mapOldMuscleToDetailedMuscle(oldPrimary);
+
+          // Обрабатываем secondaryMuscles
+          String? oldSecondary = exercise['secondaryMuscles'] as String?;
+          String newSecondary = '';
+          if (oldSecondary != null && oldSecondary.isNotEmpty) {
+            final muscles = oldSecondary.split('|');
+            final mappedMuscles = muscles
+                .map((m) => _mapOldMuscleToDetailedMuscle(m))
+                .where((m) => m.isNotEmpty)
+                .toList();
+            newSecondary = mappedMuscles.join('|');
+          }
 
           await txn.insert('exercises_new', {
             'id': exercise['id'],
             'name': exercise['name'],
-            'primaryMuscle': primaryMuscle,
-            'secondaryMuscles': '', // Пустая строка для старых данных
+            'primaryMuscle': newPrimary,
+            'secondaryMuscles': newSecondary,
             'description': exercise['description'],
             'imageUrl': exercise['imageUrl'],
             'videoUrl': exercise['videoUrl'],
@@ -131,21 +144,36 @@ class DatabaseService {
     }
   }
 
-  String _mapOldMuscleGroupToEnum(String oldMuscleGroup) {
-    // Мапинг старых названий групп мышц на новые enum значения
-    final mapping = {
-      'Chest': 'chest',
-      'Back': 'back',
-      'Legs': 'quadriceps', // По умолчанию для ног используем квадрицепс
-      'Shoulders': 'shoulders',
-      'Arms': 'biceps', // По умолчанию для рук используем бицепс
-      'Core': 'abs',
-      'Full Body': 'chest', // Временное решение
-      'Cardio': 'abs', // Временное решение
-      'Other': 'chest', // Временное решение
+  String _mapOldMuscleToDetailedMuscle(String oldMuscle) {
+    // Используем миграционную карту из Exercise модели
+    final migrationMap = {
+      'chest': 'middleChest',
+      'back': 'lats',
+      'shoulders': 'frontDelts',
+      'biceps': 'biceps',
+      'triceps': 'longHeadTriceps',
+      'forearms': 'forearms',
+      'abs': 'abs',
+      'obliques': 'obliques',
+      'quadriceps': 'quadriceps',
+      'hamstrings': 'hamstrings',
+      'glutes': 'glutes',
+      'calves': 'calves',
+      'traps': 'upperTraps',
+      'lats': 'lats',
+      'middleBack': 'rhomboids',
+      'lowerBack': 'lowerBack',
+      'frontDelts': 'frontDelts',
+      'sideDelts': 'sideDelts',
+      'rearDelts': 'rearDelts',
+      'middle_back': 'rhomboids',
+      'lower_back': 'lowerBack',
+      'front_delts': 'frontDelts',
+      'side_delts': 'sideDelts',
+      'rear_delts': 'rearDelts',
     };
 
-    return mapping[oldMuscleGroup] ?? 'chest';
+    return migrationMap[oldMuscle] ?? 'middleChest';
   }
 
   Future<void> _insertDefaultExercises(Database db) async {
