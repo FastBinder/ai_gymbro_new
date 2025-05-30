@@ -918,11 +918,18 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                           ),
                         ),
                         Text(
-                          '${progress.firstMax} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
+                          '${progress.firstMax.toStringAsFixed(1)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          loc.currentLanguage == 'ru' ? '(1ПМ)' : '(1RM)',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppColors.textMuted,
                           ),
                         ),
                       ],
@@ -945,11 +952,18 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                           ),
                         ),
                         Text(
-                          '${progress.currentMax} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
+                          '${progress.currentMax.toStringAsFixed(1)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: isPositive ? AppColors.success : AppColors.warning,
+                          ),
+                        ),
+                        Text(
+                          loc.currentLanguage == 'ru' ? '(1ПМ)' : '(1RM)',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppColors.textMuted,
                           ),
                         ),
                       ],
@@ -1015,42 +1029,53 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   }
 
   Map<String, ExerciseProgress> _calculateExerciseProgress() {
-    final exerciseData = <String, List<double>>{};
+    final exerciseData = <String, List<ExerciseRecord>>{};
 
-    // Collect all max weights for each exercise
+    // Собираем все записи для каждого упражнения с датами
     for (var workout in _allWorkouts) {
       for (var exercise in workout.exercises) {
         if (!exerciseData.containsKey(exercise.exercise.name)) {
           exerciseData[exercise.exercise.name] = [];
         }
 
-        double maxWeight = 0;
+        // Находим максимальный 1ПМ для этой тренировки
+        double max1RM = 0;
         for (var set in exercise.sets) {
-          if (set.weight > maxWeight) {
-            maxWeight = set.weight;
+          // Формула Эпли: 1ПМ = вес × (1 + повторения / 30)
+          double oneRepMax = set.weight * (1 + set.reps / 30.0);
+          if (oneRepMax > max1RM) {
+            max1RM = oneRepMax;
           }
         }
 
-        if (maxWeight > 0) {
-          exerciseData[exercise.exercise.name]!.add(maxWeight);
+        if (max1RM > 0) {
+          exerciseData[exercise.exercise.name]!.add(
+            ExerciseRecord(
+              oneRepMax: max1RM,
+              date: workout.date,
+            ),
+          );
         }
       }
     }
 
-    // Calculate progress for exercises performed at least twice
+    // Рассчитываем прогресс для упражнений, выполненных минимум дважды
     final progress = <String, ExerciseProgress>{};
 
-    exerciseData.forEach((name, weights) {
-      if (weights.length >= 2) {
+    exerciseData.forEach((name, records) {
+      if (records.length >= 2) {
+        // Сортируем по дате (от старых к новым)
+        records.sort((a, b) => a.date.compareTo(b.date));
+
         progress[name] = ExerciseProgress(
-          firstMax: weights.first,
-          currentMax: weights.last,
-          timesPerformed: weights.length,
+          firstMax: records.first.oneRepMax,
+          currentMax: records.last.oneRepMax,
+          timesPerformed: records.length,
         );
       }
     });
 
-    // Sort by improvement percentage
+    // Сортируем по проценту улучшения
     final sortedEntries = progress.entries.toList()
       ..sort((a, b) {
         final aImprovement = (a.value.currentMax - a.value.firstMax) / a.value.firstMax;
@@ -1122,7 +1147,6 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   }
 }
 
-
 class MuscleStats {
   double sets = 0; // Changed from int to double
   int reps = 0;
@@ -1190,4 +1214,15 @@ class PieChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// Добавляем класс для хранения записей упражнений
+class ExerciseRecord {
+  final double oneRepMax;
+  final DateTime date;
+
+  ExerciseRecord({
+    required this.oneRepMax,
+    required this.date,
+  });
 }

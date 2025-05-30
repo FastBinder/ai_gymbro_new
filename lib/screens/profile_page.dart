@@ -1,8 +1,10 @@
 // lib/screens/profile_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_service.dart';
+import '../services/localization_service.dart';
 import '../services/export_import_service.dart';
 import '../widgets/custom_widgets.dart';
 import 'package:file_picker/file_picker.dart';
@@ -19,14 +21,12 @@ class _ProfilePageState extends State<ProfilePage> {
   final DatabaseService _db = DatabaseService.instance;
   Map<String, dynamic>? _statistics;
   String _dataSize = 'Calculating...';
-  String _selectedLanguage = 'en'; // По умолчанию английский
 
   @override
   void initState() {
     super.initState();
     _loadStatistics();
     _loadDataSize();
-    _loadLanguagePreference();
   }
 
   Future<void> _loadStatistics() async {
@@ -43,35 +43,10 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
-  Future<void> _loadLanguagePreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _selectedLanguage = prefs.getString('app_language') ?? 'en';
-    });
-  }
-
-  Future<void> _saveLanguagePreference(String language) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('app_language', language);
-    setState(() {
-      _selectedLanguage = language;
-    });
-
-    // Показываем сообщение о необходимости перезапуска
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          language == 'ru'
-              ? 'Язык изменен. Перезапустите приложение для применения изменений.'
-              : 'Language changed. Please restart the app to apply changes.',
-        ),
-        backgroundColor: AppColors.success,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final loc = context.watch<LocalizationService>();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -87,7 +62,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(width: 8),
             Text(
-              _selectedLanguage == 'ru' ? 'ПРОФИЛЬ' : 'PROFILE',
+              loc.get('nav_profile'),
               style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
@@ -114,6 +89,8 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildStatisticsSection() {
+    final loc = context.watch<LocalizationService>();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -140,7 +117,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               const SizedBox(width: 12),
               Text(
-                _selectedLanguage == 'ru' ? 'СТАТИСТИКА' : 'STATISTICS',
+                loc.get('statistics'),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -153,20 +130,20 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 20),
           if (_statistics != null) ...[
             _buildStatItem(
-              _selectedLanguage == 'ru' ? 'Всего тренировок' : 'Total Workouts',
+              loc.get('total_workouts'),
               _statistics!['totalWorkouts'].toString(),
               Icons.fitness_center,
             ),
             const SizedBox(height: 16),
             _buildStatItem(
-              _selectedLanguage == 'ru' ? 'Общее время' : 'Total Time',
-              _formatDuration(_statistics!['totalDuration']),
+              loc.get('total_time'),
+              _formatDuration(_statistics!['totalDuration'], loc),
               Icons.timer,
             ),
             const SizedBox(height: 16),
             _buildStatItem(
-              _selectedLanguage == 'ru' ? 'Текущая серия' : 'Current Streak',
-              '${_statistics!['currentStreak']} ${_selectedLanguage == 'ru' ? 'дней' : 'days'}',
+              loc.get('current_streak'),
+              '${_statistics!['currentStreak']} ${loc.get('days')}',
               Icons.local_fire_department,
             ),
           ] else
@@ -181,6 +158,8 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildSettingsSection() {
+    final loc = context.watch<LocalizationService>();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -200,7 +179,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               const SizedBox(width: 12),
               Text(
-                _selectedLanguage == 'ru' ? 'НАСТРОЙКИ' : 'SETTINGS',
+                loc.get('settings'),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -216,7 +195,7 @@ class _ProfilePageState extends State<ProfilePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _selectedLanguage == 'ru' ? 'Язык приложения' : 'App Language',
+                loc.get('app_language'),
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -231,6 +210,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       'Русский',
                       'ru',
                       '🇷🇺',
+                      loc,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -239,6 +219,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       'English',
                       'en',
                       '🇬🇧',
+                      loc,
                     ),
                   ),
                 ],
@@ -250,11 +231,20 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildLanguageOption(String title, String languageCode, String flag) {
-    final isSelected = _selectedLanguage == languageCode;
+  Widget _buildLanguageOption(String title, String languageCode, String flag, LocalizationService loc) {
+    final isSelected = loc.currentLanguage == languageCode;
 
     return GestureDetector(
-      onTap: () => _saveLanguagePreference(languageCode),
+      onTap: () async {
+        await loc.setLanguage(languageCode);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.get('language_changed')),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
@@ -302,6 +292,8 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildDataManagementSection() {
+    final loc = context.watch<LocalizationService>();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -321,7 +313,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               const SizedBox(width: 12),
               Text(
-                _selectedLanguage == 'ru' ? 'УПРАВЛЕНИЕ ДАННЫМИ' : 'DATA MANAGEMENT',
+                loc.get('data_management'),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -348,9 +340,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    _selectedLanguage == 'ru'
-                        ? 'Размер данных: $_dataSize'
-                        : 'Data size: $_dataSize',
+                    '${loc.get('data_size')}: $_dataSize',
                     style: TextStyle(
                       fontSize: 14,
                       color: AppColors.textSecondary,
@@ -362,17 +352,18 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 16),
           GradientButton(
-            text: _selectedLanguage == 'ru' ? 'Экспорт данных' : 'Export Data',
+            text: loc.get('export_data'),
             icon: Icons.upload,
             onPressed: _exportData,
             width: double.infinity,
           ),
           const SizedBox(height: 12),
           OutlineButton(
-            text: _selectedLanguage == 'ru' ? 'Импорт данных' : 'Import Data',
+            text: loc.get('import_data'),
             icon: Icons.download,
             onPressed: _importData,
             borderColor: AppColors.primaryRed,
+            width: double.infinity,
           ),
         ],
       ),
@@ -423,6 +414,8 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _exportData() async {
+    final loc = context.read<LocalizationService>();
+
     try {
       showDialog(
         context: context,
@@ -442,7 +435,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  _selectedLanguage == 'ru' ? 'Экспорт данных...' : 'Exporting data...',
+                  loc.get('exporting_data'),
                   style: const TextStyle(
                     color: AppColors.textPrimary,
                   ),
@@ -464,11 +457,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            _selectedLanguage == 'ru'
-                ? 'Данные успешно экспортированы'
-                : 'Data exported successfully',
-          ),
+          content: Text(loc.get('data_exported_successfully')),
           backgroundColor: AppColors.success,
         ),
       );
@@ -476,11 +465,7 @@ class _ProfilePageState extends State<ProfilePage> {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            _selectedLanguage == 'ru'
-                ? 'Ошибка экспорта: $e'
-                : 'Export error: $e',
-          ),
+          content: Text(loc.get('export_error') + ': $e'),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -488,6 +473,8 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _importData() async {
+    final loc = context.read<LocalizationService>();
+
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -513,7 +500,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    _selectedLanguage == 'ru' ? 'Импорт данных...' : 'Importing data...',
+                    loc.get('importing_data'),
                     style: const TextStyle(
                       color: AppColors.textPrimary,
                     ),
@@ -532,11 +519,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              _selectedLanguage == 'ru'
-                  ? 'Данные успешно импортированы'
-                  : 'Data imported successfully',
-            ),
+            content: Text(loc.get('data_imported_successfully')),
             backgroundColor: AppColors.success,
           ),
         );
@@ -545,25 +528,21 @@ class _ProfilePageState extends State<ProfilePage> {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            _selectedLanguage == 'ru'
-                ? 'Ошибка импорта: $e'
-                : 'Import error: $e',
-          ),
+          content: Text(loc.get('import_error') + ': $e'),
           backgroundColor: AppColors.warning,
         ),
       );
     }
   }
 
-  String _formatDuration(Duration duration) {
+  String _formatDuration(Duration duration, LocalizationService loc) {
     final hours = duration.inHours;
     final minutes = duration.inMinutes % 60;
 
     if (hours > 0) {
-      return '${hours}${_selectedLanguage == 'ru' ? 'ч' : 'h'} ${minutes}${_selectedLanguage == 'ru' ? 'м' : 'm'}';
+      return '${hours}${loc.currentLanguage == 'ru' ? 'ч' : 'h'} ${minutes}${loc.currentLanguage == 'ru' ? 'м' : 'm'}';
     } else {
-      return '${minutes}${_selectedLanguage == 'ru' ? 'м' : 'm'}';
+      return '${minutes}${loc.currentLanguage == 'ru' ? 'м' : 'm'}';
     }
   }
 }

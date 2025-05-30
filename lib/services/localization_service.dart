@@ -91,7 +91,7 @@ class LocalizationService extends ChangeNotifier {
       'secondary_muscle_groups': 'SECONDARY MUSCLE GROUPS',
       'brief_description': 'Brief description of the exercise',
       'custom_exercises_saved': 'Custom exercises will be saved and available for all future workouts',
-      'save_exercise': 'Save Exercise',
+      'save_exercise': 'Save',
       'all': 'All',
 
       // Progress Page
@@ -223,7 +223,7 @@ class LocalizationService extends ChangeNotifier {
       'secondary_muscle_groups': 'ПОБОЧНЫЕ ГРУППЫ МЫШЦ',
       'brief_description': 'Краткое описание упражнения',
       'custom_exercises_saved': 'Пользовательские упражнения будут сохранены и доступны для всех будущих тренировок',
-      'save_exercise': 'Сохранить упражнение',
+      'save_exercise': 'ОК',
       'all': 'Все',
 
       // Progress Page

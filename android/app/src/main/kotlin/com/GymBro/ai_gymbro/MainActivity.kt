@@ -1,4 +1,4 @@
-package com.GymBro.ai_gymbro
+package com.GymBro
 
 import io.flutter.embedding.android.FlutterActivity
 
