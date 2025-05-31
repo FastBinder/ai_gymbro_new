@@ -26,11 +26,19 @@ android {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
+    dependencies {
+        implementation("androidx.core:core-ktx:1.12.0")
+        implementation("androidx.activity:activity-ktx:1.8.2")
+
+        // Для поддержки edge-to-edge
+        implementation("androidx.core:core:1.12.0")
+        implementation("androidx.window:window:1.2.0")
+    }
 
     defaultConfig {
         applicationId = "com.GymBro"
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 21
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

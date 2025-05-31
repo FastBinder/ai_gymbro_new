@@ -236,177 +236,19 @@ class Exercise {
       tips: tips ?? this.tips,
     );
   }
-}
 
-/// База данных упражнений (примеры)
-class ExerciseDatabase {
-  static final List<Exercise> exercises = [
-    // Упражнения на грудь
-    Exercise(
-      id: '1',
-      name: 'Barbell Bench Press',
-      primaryMuscle: DetailedMuscle.middleChest,
-      secondaryMuscles: [
-        DetailedMuscle.longHeadTriceps,
-        DetailedMuscle.lateralHeadTriceps,
-        DetailedMuscle.frontDelts
-      ],
-      description: 'Fundamental exercise for chest development',
-      instructions: [
-        'Lie on bench with eyes under the bar',
-        'Grip the bar slightly wider than shoulders',
-        'Lower the bar to your chest',
-        'Press the bar up to starting position'
-      ],
-      tips: [
-        'Keep shoulder blades retracted',
-        'Plant feet firmly on the floor',
-        'Maintain tight core throughout'
-      ],
-    ),
-
-    Exercise(
-      id: '2',
-      name: 'Incline Dumbbell Press',
-      primaryMuscle: DetailedMuscle.upperChest,
-      secondaryMuscles: [
-        DetailedMuscle.frontDelts,
-        DetailedMuscle.longHeadTriceps
-      ],
-      description: 'Targets upper chest development',
-    ),
-
-    // Упражнения на спину
-    Exercise(
-      id: '3',
-      name: 'Pull-ups',
-      primaryMuscle: DetailedMuscle.lats,
-      secondaryMuscles: [
-        DetailedMuscle.biceps,
-        DetailedMuscle.rhomboids,
-        DetailedMuscle.middleTraps,
-        DetailedMuscle.rearDelts
-      ],
-      description: 'Compound exercise for lats and upper back',
-      instructions: [
-        'Hang from bar with overhand grip',
-        'Pull body up until chin over bar',
-        'Lower with control'
-      ],
-    ),
-
-    Exercise(
-      id: '4',
-      name: 'Barbell Row',
-      primaryMuscle: DetailedMuscle.rhomboids,
-      secondaryMuscles: [
-        DetailedMuscle.lats,
-        DetailedMuscle.middleTraps,
-        DetailedMuscle.biceps,
-        DetailedMuscle.rearDelts
-      ],
-      description: 'Compound back exercise for thickness',
-    ),
-
-    // Упражнения на ноги
-    Exercise(
-      id: '5',
-      name: 'Barbell Squat',
-      primaryMuscle: DetailedMuscle.quadriceps,
-      secondaryMuscles: [
-        DetailedMuscle.glutes,
-        DetailedMuscle.hamstrings,
-        DetailedMuscle.calves,
-        DetailedMuscle.erectorSpinae
-      ],
-      description: 'King of all leg exercises',
-      instructions: [
-        'Position bar on upper traps',
-        'Squat down until thighs parallel',
-        'Drive up through heels'
-      ],
-    ),
-
-    // Упражнения на плечи
-    Exercise(
-      id: '6',
-      name: 'Overhead Press',
-      primaryMuscle: DetailedMuscle.frontDelts,
-      secondaryMuscles: [
-        DetailedMuscle.sideDelts,
-        DetailedMuscle.longHeadTriceps,
-        DetailedMuscle.upperChest
-      ],
-      description: 'Fundamental shoulder exercise',
-    ),
-
-    // Упражнения на бицепс
-    Exercise(
-      id: '7',
-      name: 'Barbell Curl',
-      primaryMuscle: DetailedMuscle.biceps,
-      secondaryMuscles: [
-        DetailedMuscle.forearms
-      ],
-      description: 'Classic bicep builder',
-    ),
-
-    // Упражнения на трицепс
-    Exercise(
-      id: '8',
-      name: 'Close-Grip Bench Press',
-      primaryMuscle: DetailedMuscle.longHeadTriceps,
-      secondaryMuscles: [
-        DetailedMuscle.lateralHeadTriceps,
-        DetailedMuscle.medialHeadTriceps,
-        DetailedMuscle.innerChest,
-        DetailedMuscle.frontDelts
-      ],
-      description: 'Compound tricep exercise',
-    ),
-  ];
-
-  // Маппинг старых MuscleGroup на новые DetailedMuscle для миграции
-  static final Map<String, DetailedMuscle> migrationMap = {
-    'chest': DetailedMuscle.middleChest,
-    'back': DetailedMuscle.lats,
-    'shoulders': DetailedMuscle.frontDelts,
-    'biceps': DetailedMuscle.biceps,
-    'triceps': DetailedMuscle.longHeadTriceps,
-    'forearms': DetailedMuscle.forearms,
-    'abs': DetailedMuscle.abs,
-    'obliques': DetailedMuscle.obliques,
-    'quadriceps': DetailedMuscle.quadriceps,
-    'hamstrings': DetailedMuscle.hamstrings,
-    'glutes': DetailedMuscle.glutes,
-    'calves': DetailedMuscle.calves,
-    'traps': DetailedMuscle.upperTraps,
-    'lats': DetailedMuscle.lats,
-    'middleBack': DetailedMuscle.rhomboids,
-    'lowerBack': DetailedMuscle.lowerBack,
-    'frontDelts': DetailedMuscle.frontDelts,
-    'sideDelts': DetailedMuscle.sideDelts,
-    'rearDelts': DetailedMuscle.rearDelts,
-  };
-
-  /// Получить упражнения по категории
-  static List<Exercise> getByCategory(MuscleCategory category) {
-    return exercises
-        .where((exercise) => exercise.involvesCategory(category))
-        .toList();
+  /// Get localized name from ID
+  String getLocalizedName(String Function(String) localizationGetter) {
+    // For custom exercises (ID is timestamp), return the original name
+    if (id.length > 10 && RegExp(r'^\d+$').hasMatch(id)) {
+      return name;
+    }
+    // For built-in exercises, try to get localized name from ID
+    // If localization not found, return original name
+    final localizedName = localizationGetter(id);
+    return localizedName == id ? name : localizedName;
   }
 
-  /// Получить упражнения по основной категории
-  static List<Exercise> getByPrimaryCategory(MuscleCategory category) {
-    return exercises
-        .where((exercise) => exercise.primaryCategory == category)
-        .toList();
-  }
-
-  /// Получить упражнения по детальной мышце
-  static List<Exercise> getByMuscle(DetailedMuscle muscle) {
-    return exercises
-        .where((exercise) => exercise.involvesMuscle(muscle))
-        .toList();
-  }
+  /// Check if exercise is custom
+  bool get isCustom => id.length > 10 && RegExp(r'^\d+$').hasMatch(id);
 }

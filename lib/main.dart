@@ -8,22 +8,34 @@ import 'screens/exercises_page.dart';
 import 'screens/progress_page.dart';
 import 'screens/profile_page.dart';
 import 'services/localization_service.dart';
+import 'services/active_workout_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Настройка системного UI
-  SystemChrome.setEnabledSystemUIMode(
-    SystemUiMode.edgeToEdge,
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
   );
 
   // Инициализация локализации
   final localizationService = LocalizationService();
   await localizationService.loadLanguage();
 
+  // Инициализация сервиса тренировки
+  final workoutService = ActiveWorkoutService();
+
   runApp(
-    ChangeNotifierProvider.value(
-      value: localizationService,
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: localizationService),
+        ChangeNotifierProvider.value(value: workoutService),
+      ],
       child: const GymTrackerApp(),
     ),
   );
@@ -205,35 +217,36 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
-    // Получаем локализацию
     final loc = context.watch<LocalizationService>();
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Gradient background
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF0A0A0A),
-                  Color(0xFF000000),
-                ],
+      body: SafeArea(  // <-- ДОБАВИТЬ SafeArea ЗДЕСЬ
+        bottom: false,  // <-- Позволяем навбару быть под контентом
+        child: Stack(
+          children: [
+            // Gradient background
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF0A0A0A),
+                    Color(0xFF000000),
+                  ],
+                ),
               ),
             ),
-          ),
-          // Page content with fade animation
-          SafeArea(
-            child: FadeTransition(
+            // Page content with fade animation
+            FadeTransition(  // <-- УБРАТЬ SafeArea ОТСЮДА
               opacity: _fadeAnimation,
               child: _pages[_selectedIndex],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

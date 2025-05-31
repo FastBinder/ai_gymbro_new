@@ -2,19 +2,39 @@
 
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
 import '../models/exercise.dart';
 import '../models/workout.dart';
 
 class DatabaseService {
   static Database? _database;
+  static Database? _exercisesDb;
   static final DatabaseService instance = DatabaseService._init();
+
+  // Кеш для упражнений
+  final Map<int, List<Exercise>> _categoryCache = {};
+  final Map<String, Exercise> _exerciseCache = {};
+  List<Exercise>? _allExercisesCache;
 
   DatabaseService._init();
 
+  // Constants
+  static const String MAIN_DB = 'gymbro.db';
+  static const String EXERCISES_DB = 'exercises.db';
+  static const int EXERCISES_DB_VERSION = 4;
+
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('gymbro.db');
+    _database = await _initDB(MAIN_DB);
     return _database!;
+  }
+
+  Future<Database> get exercisesDb async {
+    if (_exercisesDb != null) return _exercisesDb!;
+    _exercisesDb = await _initExercisesDB();
+    return _exercisesDb!;
   }
 
   Future<Database> _initDB(String filePath) async {
@@ -23,30 +43,64 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 2, // Увеличиваем версию для миграции
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
   }
 
-  Future<void> _createDB(Database db, int version) async {
-    // Create exercises table with new structure
-    await db.execute('''
-      CREATE TABLE exercises(
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        primaryMuscle TEXT NOT NULL,
-        secondaryMuscles TEXT,
-        description TEXT NOT NULL,
-        imageUrl TEXT,
-        videoUrl TEXT,
-        instructions TEXT,
-        tips TEXT,
-        isCustom INTEGER DEFAULT 0
-      )
-    ''');
+  Future<Database> _initExercisesDB() async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, EXERCISES_DB);
 
-    // Create workouts table
+    // Проверяем, нужно ли обновить БД упражнений
+    await _checkAndUpdateExercisesDB(path);
+
+    // Открываем БД упражнений
+    return await openDatabase(
+      path,
+      readOnly: true,
+      singleInstance: true,
+    );
+  }
+
+  Future<void> _checkAndUpdateExercisesDB(String path) async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentVersion = prefs.getInt('exercises_db_version') ?? 0;
+
+    final file = File(path);
+    final shouldUpdate = !file.existsSync() || currentVersion < EXERCISES_DB_VERSION;
+
+    if (shouldUpdate) {
+      // Загружаем БД из assets
+      final data = await rootBundle.load('assets/databases/$EXERCISES_DB');
+      final bytes = data.buffer.asUint8List();
+
+      // Создаем директорию если не существует
+      final dir = Directory(dirname(path));
+      if (!dir.existsSync()) {
+        await dir.create(recursive: true);
+      }
+
+      // Записываем файл
+      await file.writeAsBytes(bytes, flush: true);
+
+      // Сохраняем версию
+      await prefs.setInt('exercises_db_version', EXERCISES_DB_VERSION);
+
+      // Очищаем кеш при обновлении
+      _clearCache();
+    }
+  }
+
+  void _clearCache() {
+    _categoryCache.clear();
+    _exerciseCache.clear();
+    _allExercisesCache = null;
+  }
+
+  Future<void> _createDB(Database db, int version) async {
+    // Таблица тренировок
     await db.execute('''
       CREATE TABLE workouts(
         id TEXT PRIMARY KEY,
@@ -56,7 +110,7 @@ class DatabaseService {
       )
     ''');
 
-    // Create workout_exercises table (many-to-many relationship)
+    // Таблица упражнений в тренировке
     await db.execute('''
       CREATE TABLE workout_exercises(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,7 +122,7 @@ class DatabaseService {
       )
     ''');
 
-    // Create sets table
+    // Таблица подходов
     await db.execute('''
       CREATE TABLE sets(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,17 +134,32 @@ class DatabaseService {
       )
     ''');
 
-    // Insert default exercises
-    await _insertDefaultExercises(db);
+    // Таблица кастомных упражнений
+    await db.execute('''
+      CREATE TABLE custom_exercises(
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        primaryMuscle TEXT NOT NULL,
+        secondaryMuscles TEXT,
+        description TEXT NOT NULL,
+        imageUrl TEXT,
+        videoUrl TEXT,
+        instructions TEXT,
+        tips TEXT
+      )
+    ''');
+
+    // Индексы для производительности
+    await db.execute('CREATE INDEX idx_workout_date ON workouts(date DESC)');
+    await db.execute('CREATE INDEX idx_workout_exercises ON workout_exercises(workoutId, orderIndex)');
+    await db.execute('CREATE INDEX idx_sets ON sets(workoutExerciseId)');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 3) {
-      // Миграция на версию 3 с новой системой мышц
-      await db.transaction((txn) async {
-        // Создаем временную таблицу с новой структурой
-        await txn.execute('''
-        CREATE TABLE exercises_new(
+      // Добавляем таблицу кастомных упражнений если её нет
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS custom_exercises(
           id TEXT PRIMARY KEY,
           name TEXT NOT NULL,
           primaryMuscle TEXT NOT NULL,
@@ -99,138 +168,213 @@ class DatabaseService {
           imageUrl TEXT,
           videoUrl TEXT,
           instructions TEXT,
-          tips TEXT,
-          isCustom INTEGER DEFAULT 0
+          tips TEXT
         )
       ''');
-
-        // Копируем данные из старой таблицы с миграцией
-        final exercises = await txn.query('exercises');
-        for (final exercise in exercises) {
-          // Мапим старые мышцы на новые
-          String oldPrimary = exercise['primaryMuscle'] as String;
-          String newPrimary = _mapOldMuscleToDetailedMuscle(oldPrimary);
-
-          // Обрабатываем secondaryMuscles
-          String? oldSecondary = exercise['secondaryMuscles'] as String?;
-          String newSecondary = '';
-          if (oldSecondary != null && oldSecondary.isNotEmpty) {
-            final muscles = oldSecondary.split('|');
-            final mappedMuscles = muscles
-                .map((m) => _mapOldMuscleToDetailedMuscle(m))
-                .where((m) => m.isNotEmpty)
-                .toList();
-            newSecondary = mappedMuscles.join('|');
-          }
-
-          await txn.insert('exercises_new', {
-            'id': exercise['id'],
-            'name': exercise['name'],
-            'primaryMuscle': newPrimary,
-            'secondaryMuscles': newSecondary,
-            'description': exercise['description'],
-            'imageUrl': exercise['imageUrl'],
-            'videoUrl': exercise['videoUrl'],
-            'instructions': exercise['instructions'],
-            'tips': exercise['tips'],
-            'isCustom': exercise['isCustom'] ?? 0,
-          });
-        }
-
-        // Удаляем старую таблицу и переименовываем новую
-        await txn.execute('DROP TABLE exercises');
-        await txn.execute('ALTER TABLE exercises_new RENAME TO exercises');
-      });
     }
   }
 
-  String _mapOldMuscleToDetailedMuscle(String oldMuscle) {
-    // Используем миграционную карту из Exercise модели
-    final migrationMap = {
-      'chest': 'middleChest',
-      'back': 'lats',
-      'shoulders': 'frontDelts',
-      'biceps': 'biceps',
-      'triceps': 'longHeadTriceps',
-      'forearms': 'forearms',
-      'abs': 'abs',
-      'obliques': 'obliques',
-      'quadriceps': 'quadriceps',
-      'hamstrings': 'hamstrings',
-      'glutes': 'glutes',
-      'calves': 'calves',
-      'traps': 'upperTraps',
-      'lats': 'lats',
-      'middleBack': 'rhomboids',
-      'lowerBack': 'lowerBack',
-      'frontDelts': 'frontDelts',
-      'sideDelts': 'sideDelts',
-      'rearDelts': 'rearDelts',
-      'middle_back': 'rhomboids',
-      'lower_back': 'lowerBack',
-      'front_delts': 'frontDelts',
-      'side_delts': 'sideDelts',
-      'rear_delts': 'rearDelts',
-    };
+  // ============ EXERCISE METHODS ============
 
-    return migrationMap[oldMuscle] ?? 'middleChest';
-  }
-
-  Future<void> _insertDefaultExercises(Database db) async {
-    for (var exercise in ExerciseDatabase.exercises) {
-      await db.insert('exercises', {
-        ...exercise.toMap(),
-        'isCustom': 0,
-      });
-    }
-  }
-
-  // Exercise methods
   Future<List<Exercise>> getAllExercises() async {
-    final db = await database;
-    final result = await db.query('exercises', orderBy: 'primaryMuscle, name');
-    return result.map((map) => Exercise.fromMap(map)).toList();
+    // Возвращаем из кеша если есть
+    if (_allExercisesCache != null) {
+      return _allExercisesCache!;
+    }
+
+    try {
+      // Загружаем упражнения из предзаполненной БД
+      final db = await exercisesDb;
+      final results = await db.query(
+        'exercises',
+        orderBy: 'category, name',
+      );
+
+      _allExercisesCache = results.map((map) => _parseExercise(map)).toList();
+
+      // Заполняем кеш отдельных упражнений
+      for (var exercise in _allExercisesCache!) {
+        _exerciseCache[exercise.id] = exercise;
+      }
+
+      // Добавляем кастомные упражнения из основной БД
+      await _loadCustomExercises();
+
+      return _allExercisesCache!;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> _loadCustomExercises() async {
+    try {
+      final mainDb = await database;
+      final customExercises = await mainDb.query('custom_exercises');
+
+      for (var map in customExercises) {
+        final exercise = Exercise.fromMap(map);
+        _allExercisesCache!.add(exercise);
+        _exerciseCache[exercise.id] = exercise;
+      }
+    } catch (e) {
+      // Игнорируем ошибки если таблицы нет
+    }
+  }
+
+  Future<List<Exercise>> getExercisesByCategory(MuscleCategory category) async {
+    final categoryIndex = category.index;
+
+    // Проверяем кеш
+    if (_categoryCache.containsKey(categoryIndex)) {
+      return _categoryCache[categoryIndex]!;
+    }
+
+    final allExercises = await getAllExercises();
+    final filtered = allExercises.where((e) => e.primaryCategory == category).toList();
+
+    _categoryCache[categoryIndex] = filtered;
+    return filtered;
+  }
+
+  Future<List<Exercise>> searchExercises(String query) async {
+    if (query.trim().isEmpty) {
+      return getAllExercises();
+    }
+
+    try {
+      final db = await exercisesDb;
+
+      // Используем FTS для быстрого поиска
+      final results = await db.rawQuery('''
+        SELECT e.* FROM exercises e
+        JOIN exercises_fts ON e.id = exercises_fts.rowid
+        WHERE exercises_fts MATCH ?
+        ORDER BY rank
+        LIMIT 50
+      ''', ['$query*']);
+
+      final exercises = results.map((map) => _parseExercise(map)).toList();
+
+      // Добавляем поиск по кастомным упражнениям
+      final mainDb = await database;
+      final customResults = await mainDb.query(
+        'custom_exercises',
+        where: 'name LIKE ?',
+        whereArgs: ['%$query%'],
+      );
+
+      for (var map in customResults) {
+        exercises.add(Exercise.fromMap(map));
+      }
+
+      return exercises;
+    } catch (e) {
+      // Fallback на простой поиск
+      final allExercises = await getAllExercises();
+      return allExercises.where((exercise) =>
+          exercise.name.toLowerCase().contains(query.toLowerCase())
+      ).toList();
+    }
   }
 
   Future<Exercise?> getExercise(String id) async {
-    final db = await database;
-    final maps = await db.query(
-      'exercises',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    // Проверяем кеш
+    if (_exerciseCache.containsKey(id)) {
+      return _exerciseCache[id];
+    }
 
-    if (maps.isNotEmpty) {
-      return Exercise.fromMap(maps.first);
+    // Для кастомных упражнений (id > 10 символов) ищем в основной БД
+    if (id.length > 10) {
+      return _getCustomExercise(id);
+    }
+
+    try {
+      final db = await exercisesDb;
+      final maps = await db.query(
+        'exercises',
+        where: 'id = ?',
+        whereArgs: [int.tryParse(id) ?? -1],
+      );
+
+      if (maps.isNotEmpty) {
+        final exercise = _parseExercise(maps.first);
+        _exerciseCache[id] = exercise;
+        return exercise;
+      }
+    } catch (e) {
+      // Игнорируем ошибки
+    }
+
+    return null;
+  }
+
+  Exercise _parseExercise(Map<String, dynamic> map) {
+    return Exercise(
+      id: map['id'].toString(),
+      name: map['name'] ?? '',
+      primaryMuscle: DetailedMuscle.values[map['primary_muscle'] ?? 0],
+      secondaryMuscles: map['secondary_muscles'] != null &&
+          (map['secondary_muscles'] as String).isNotEmpty
+          ? (map['secondary_muscles'] as String)
+          .split(',')
+          .map((i) => DetailedMuscle.values[int.tryParse(i) ?? 0])
+          .toList()
+          : [],
+      description: map['description'] ?? '',
+      instructions: map['instructions'] != null &&
+          (map['instructions'] as String).isNotEmpty
+          ? (map['instructions'] as String).split('|||')
+          : null,
+      tips: map['tips'] != null &&
+          (map['tips'] as String).isNotEmpty
+          ? (map['tips'] as String).split('|||')
+          : null,
+    );
+  }
+
+  // ============ CUSTOM EXERCISE METHODS ============
+
+  Future<Exercise?> _getCustomExercise(String id) async {
+    try {
+      final db = await database;
+      final maps = await db.query(
+        'custom_exercises',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+
+      if (maps.isNotEmpty) {
+        return Exercise.fromMap(maps.first);
+      }
+    } catch (e) {
+      // Игнорируем ошибки
     }
     return null;
   }
 
   Future<String> createCustomExercise(Exercise exercise) async {
     final db = await database;
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
-    final customExercise = Exercise(
-      id: id,
-      name: exercise.name,
-      primaryMuscle: exercise.primaryMuscle,
-      secondaryMuscles: exercise.secondaryMuscles,
-      description: exercise.description,
-      instructions: exercise.instructions,
-      tips: exercise.tips,
-    );
 
-    await db.insert('exercises', {
-      ...customExercise.toMap(),
-      'isCustom': 1,
-    });
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    final customExercise = exercise.copyWith(id: id);
+
+    await db.insert('custom_exercises', customExercise.toMap());
+
+    // Очищаем кеш всех упражнений
+    _allExercisesCache = null;
 
     return id;
   }
 
   Future<void> deleteExercise(String id) async {
+    // Удаляем только кастомные упражнения
+    if (id.length <= 10) {
+      throw Exception('Cannot delete built-in exercises');
+    }
+
     final db = await database;
 
-    // Check if exercise is used in any workouts
+    // Проверяем использование в тренировках
     final usageCount = Sqflite.firstIntValue(
       await db.rawQuery(
         'SELECT COUNT(*) FROM workout_exercises WHERE exerciseId = ?',
@@ -242,25 +386,27 @@ class DatabaseService {
       throw Exception('Cannot delete exercise that is used in workouts');
     }
 
-    // Delete only if it's a custom exercise
     final result = await db.delete(
-      'exercises',
-      where: 'id = ? AND isCustom = 1',
+      'custom_exercises',
+      where: 'id = ?',
       whereArgs: [id],
     );
 
     if (result == 0) {
-      throw Exception('Cannot delete built-in exercises');
+      throw Exception('Exercise not found');
     }
+
+    // Очищаем кеш
+    _allExercisesCache = null;
+    _exerciseCache.remove(id);
   }
 
-  // Workout methods
+  // ============ WORKOUT METHODS ============
+
   Future<String> createWorkout(Workout workout) async {
     final db = await database;
 
-    // Start transaction
     await db.transaction((txn) async {
-      // Insert workout
       await txn.insert('workouts', {
         'id': workout.id,
         'name': workout.name,
@@ -268,18 +414,15 @@ class DatabaseService {
         'duration': workout.duration.inSeconds,
       });
 
-      // Insert workout exercises and sets
       for (int i = 0; i < workout.exercises.length; i++) {
         final workoutExercise = workout.exercises[i];
 
-        // Insert workout_exercise
         final workoutExerciseId = await txn.insert('workout_exercises', {
           'workoutId': workout.id,
           'exerciseId': workoutExercise.exercise.id,
           'orderIndex': i,
         });
 
-        // Insert sets
         for (final set in workoutExercise.sets) {
           await txn.insert('sets', {
             'workoutExerciseId': workoutExerciseId,
@@ -297,7 +440,6 @@ class DatabaseService {
   Future<List<Workout>> getAllWorkouts() async {
     final db = await database;
 
-    // Get all workouts
     final workoutMaps = await db.query(
       'workouts',
       orderBy: 'date DESC',
@@ -306,7 +448,6 @@ class DatabaseService {
     List<Workout> workouts = [];
 
     for (final workoutMap in workoutMaps) {
-      // Get workout exercises
       final workoutExerciseMaps = await db.query(
         'workout_exercises',
         where: 'workoutId = ?',
@@ -317,18 +458,9 @@ class DatabaseService {
       List<WorkoutExercise> exercises = [];
 
       for (final weMap in workoutExerciseMaps) {
-        // Get exercise details
-        final exerciseMaps = await db.query(
-          'exercises',
-          where: 'id = ?',
-          whereArgs: [weMap['exerciseId']],
-        );
+        final exercise = await getExercise(weMap['exerciseId'] as String);
+        if (exercise == null) continue;
 
-        if (exerciseMaps.isEmpty) continue;
-
-        final exercise = Exercise.fromMap(exerciseMaps.first);
-
-        // Get sets
         final setMaps = await db.query(
           'sets',
           where: 'workoutExerciseId = ?',
@@ -369,21 +501,19 @@ class DatabaseService {
     );
   }
 
-  // Statistics methods
+  // ============ STATISTICS METHODS ============
+
   Future<Map<String, dynamic>> getStatistics() async {
     final db = await database;
 
-    // Total workouts
     final totalWorkouts = Sqflite.firstIntValue(
         await db.rawQuery('SELECT COUNT(*) FROM workouts')
     ) ?? 0;
 
-    // Total duration
     final totalSeconds = Sqflite.firstIntValue(
         await db.rawQuery('SELECT SUM(duration) FROM workouts')
     ) ?? 0;
 
-    // Current streak
     final streak = await _calculateStreak();
 
     return {
@@ -411,7 +541,6 @@ class DatabaseService {
       final dateOnly = DateTime(date.year, date.month, date.day);
 
       if (lastDate == null) {
-        // First workout
         final today = DateTime.now();
         final todayOnly = DateTime(today.year, today.month, today.day);
 
@@ -423,7 +552,6 @@ class DatabaseService {
           break;
         }
       } else {
-        // Check if consecutive
         if (dateOnly == lastDate.subtract(const Duration(days: 1))) {
           streak++;
           lastDate = dateOnly;
@@ -436,9 +564,12 @@ class DatabaseService {
     return streak;
   }
 
-  // Close database
   Future<void> close() async {
-    final db = await database;
-    db.close();
+    await _database?.close();
+    await _exercisesDb?.close();
+
+    _database = null;
+    _exercisesDb = null;
+    _clearCache();
   }
 }
