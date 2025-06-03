@@ -104,70 +104,35 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
   Widget build(BuildContext context) {
     final loc = context.watch<LocalizationService>();
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            if (!_isLoading) _buildCategoryFilter(),
-            Expanded(
-              child: _isLoading
-                  ? const Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.primaryRed,
-                ),
-              )
-                  : FadeTransition(
-                opacity: _fadeAnimation,
-                child: _filteredExercises.isEmpty
-                    ? EmptyState(
-                  icon: Icons.search_off,
-                  title: loc.get('no_exercises_found'),
-                  subtitle: loc.get('try_different_filters'),
-                  action: GradientButton(
-                    text: loc.get('add_custom_exercise'),
-                    icon: Icons.add,
-                    onPressed: _addCustomExercise,
-                    width: 200,
-                  ),
-                )
-                    : _buildExercisesList(),
+    return Column(
+      children: [
+        _buildHeader(),
+        if (!_isLoading) _buildCategoryFilter(),
+        Expanded(
+          child: _isLoading
+              ? const Center(
+            child: CircularProgressIndicator(
+              color: AppColors.primaryRed,
+            ),
+          )
+              : FadeTransition(
+            opacity: _fadeAnimation,
+            child: _filteredExercises.isEmpty
+                ? EmptyState(
+              icon: Icons.search_off,
+              title: loc.get('no_exercises_found'),
+              subtitle: loc.get('try_different_filters'),
+              action: GradientButton(
+                text: loc.get('add_custom_exercise'),
+                icon: Icons.add,
+                onPressed: _addCustomExercise,
+                width: 200,
               ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: Container(
-        height: 64,
-        width: 64,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppColors.primaryRed, AppColors.darkRed],
-          ),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primaryRed.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          shape: const CircleBorder(),
-          child: InkWell(
-            onTap: _addCustomExercise,
-            customBorder: const CircleBorder(),
-            child: const Icon(
-              Icons.add,
-              color: Colors.white,
-              size: 32,
-            ),
+            )
+                : _buildExercisesList(),
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -175,53 +140,19 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
     final loc = context.watch<LocalizationService>();
 
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppColors.surfaceLight,
-            AppColors.surfaceLight.withOpacity(0),
-          ],
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.fitness_center,
-                color: AppColors.primaryRed,
-                size: 32,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                loc.get('nav_exercises'),
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          GymTextField(
-            hintText: loc.get('search_exercises'),
-            prefixIcon: Icons.search,
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
-            },
-          ),
-        ],
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      child: GymTextField(
+        hintText: loc.get('search_exercises'),
+        prefixIcon: Icons.search,
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
       ),
     );
   }
+
 
   Widget _buildCategoryFilter() {
     final loc = context.watch<LocalizationService>();
@@ -264,101 +195,140 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
   Widget _buildExercisesList() {
     final loc = context.watch<LocalizationService>();
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-      itemCount: _filteredExercises.length,
-      itemBuilder: (context, index) {
-        final exercise = _filteredExercises[index];
-        final isCustom = exercise.id.length > 10;
+    return Stack(
+      children: [
+        ListView.builder(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+          itemCount: _filteredExercises.length,
+          itemBuilder: (context, index) {
+            final exercise = _filteredExercises[index];
+            final isCustom = exercise.id.length > 10;
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          child: GymCard(
-            onTap: () => _showExerciseDetails(exercise),
-            child: Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isCustom
-                          ? [AppColors.orange.withOpacity(0.2), AppColors.orange.withOpacity(0.1)]
-                          : [AppColors.primaryRed.withOpacity(0.2), AppColors.darkRed.withOpacity(0.1)],
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              child: GymCard(
+                onTap: () => _showExerciseDetails(exercise),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isCustom
+                              ? [AppColors.orange.withOpacity(0.2), AppColors.orange.withOpacity(0.1)]
+                              : [AppColors.primaryRed.withOpacity(0.2), AppColors.darkRed.withOpacity(0.1)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        isCustom ? Icons.person : _getCategoryIcon(exercise.primaryCategory),
+                        color: isCustom ? AppColors.orange : AppColors.primaryRed,
+                        size: 28,
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    isCustom ? Icons.person : _getCategoryIcon(exercise.primaryCategory),
-                    color: isCustom ? AppColors.orange : AppColors.primaryRed,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              exercise.name,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  exercise.getLocalizedName(loc.currentLanguage),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
                               ),
+                              if (isCustom)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.orange.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColors.orange.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    loc.get('custom'),
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.orange,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _getLocalizedMuscleDisplay(exercise, loc),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textSecondary,
                             ),
                           ),
-                          if (isCustom)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.orange.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: AppColors.orange.withOpacity(0.3),
-                                ),
-                              ),
-                              child: Text(
-                                loc.get('custom'),
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.orange,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                            ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _getLocalizedMuscleDisplay(exercise, loc),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: AppColors.textMuted,
+                      size: 28,
+                    ),
+                  ],
                 ),
-                Icon(
-                  Icons.chevron_right,
-                  color: AppColors.textMuted,
-                  size: 28,
+              ),
+            );
+          },
+        ),
+        Positioned(
+          bottom: 24,
+          right: 24,
+          child: Container(
+            height: 64,
+            width: 64,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.primaryRed, AppColors.darkRed],
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryRed.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
+            child: Material(
+              color: Colors.transparent,
+              shape: const CircleBorder(),
+              child: InkWell(
+                onTap: _addCustomExercise,
+                customBorder: const CircleBorder(),
+                child: const Icon(
+                  Icons.add,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+            ),
           ),
-        );
-      },
+        ),
+      ],
     );
   }
+
 
   void _addCustomExercise() {
     final loc = context.read<LocalizationService>();
@@ -390,15 +360,15 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
   }
 
   void _showExerciseDetails(Exercise exercise) {
-    final loc = context.watch<LocalizationService>();
+    final loc = context.read<LocalizationService>(); // Изменено с watch на read
     final isCustom = exercise.id.length > 10;
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.75,
+      builder: (modalContext) => Container( // Переименовали context в modalContext
+        height: MediaQuery.of(modalContext).size.height * 0.75,
         decoration: const BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.only(
@@ -451,7 +421,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      exercise.name,
+                                      exercise.getLocalizedName(loc.currentLanguage),
                                       style: const TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
@@ -509,7 +479,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            exercise.description,
+                            exercise.getLocalizedDescription(loc.currentLanguage),
                             style: const TextStyle(
                               fontSize: 16,
                               color: AppColors.textPrimary,
@@ -519,7 +489,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                         ],
                       ),
                     ),
-                    if (exercise.instructions != null) ...[
+                    if (exercise.getLocalizedInstructions(loc.currentLanguage) != null) ...[
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -540,7 +510,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                               ),
                             ),
                             const SizedBox(height: 12),
-                            ...exercise.instructions!.map((instruction) => Padding(
+                            ...exercise.getLocalizedInstructions(loc.currentLanguage)!.map((instruction) => Padding(
                               padding: const EdgeInsets.only(bottom: 8),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -576,7 +546,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                         ),
                       ),
                     ],
-                    if (exercise.tips != null) ...[
+                    if (exercise.getLocalizedTips(loc.currentLanguage) != null) ...[
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -615,7 +585,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                               ],
                             ),
                             const SizedBox(height: 12),
-                            ...exercise.tips!.map((tip) => Padding(
+                            ...exercise.getLocalizedTips(loc.currentLanguage)!.map((tip) => Padding(
                               padding: const EdgeInsets.only(bottom: 8),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -661,7 +631,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
                         Expanded(
                           child: GradientButton(
                             text: loc.get('close'),
-                            onPressed: () => Navigator.of(context).pop(),
+                            onPressed: () => Navigator.of(modalContext).pop(), // Используем modalContext
                           ),
                         ),
                       ],
@@ -677,7 +647,7 @@ class _ExercisesPageState extends State<ExercisesPage> with TickerProviderStateM
   }
 
   Widget _buildMuscleDisplay(Exercise exercise) {
-    final loc = context.watch<LocalizationService>();
+    final loc = context.read<LocalizationService>();
 
     return Wrap(
       spacing: 8,

@@ -37,6 +37,7 @@ class LocalizationService extends ChangeNotifier {
     'en': {
       // Navigation
       'nav_workout': 'WORKOUT',
+      'nav_history': 'HISTORY',
       'nav_exercises': 'EXERCISES',
       'nav_progress': 'PROGRESS',
       'nav_profile': 'PROFILE',
@@ -69,6 +70,12 @@ class LocalizationService extends ChangeNotifier {
       'workout_saved': 'Workout saved!',
       'add_at_least_one_exercise': 'Add at least one exercise',
       'exercises': 'exercises',
+      'ready_to_train': 'Ready to Train?',
+      'start_workout_motivation': 'Push your limits and achieve your goals!',
+
+      // History page
+      'no_workout_history': 'No workout history',
+      'complete_workout_to_see_history': 'Complete your first workout to see it here',
 
       // Exercises Page
       'search_exercises': 'Search exercises...',
@@ -314,6 +321,7 @@ class LocalizationService extends ChangeNotifier {
     'ru': {
       // Navigation
       'nav_workout': 'ТРЕНИРОВКА',
+      'nav_history': 'ИСТОРИЯ',
       'nav_exercises': 'УПРАЖНЕНИЯ',
       'nav_progress': 'ПРОГРЕСС',
       'nav_profile': 'ПРОФИЛЬ',
@@ -346,6 +354,9 @@ class LocalizationService extends ChangeNotifier {
       'workout_saved': 'Тренировка сохранена!',
       'add_at_least_one_exercise': 'Добавьте хотя бы одно упражнение',
       'exercises': 'упражнений',
+      'ready_to_train': 'Готовы тренироваться?',
+      'start_workout_motivation': 'Превзойдите свои пределы и достигните целей!',
+
 
       // Exercises Page
       'search_exercises': 'Поиск упражнений...',
@@ -422,6 +433,10 @@ class LocalizationService extends ChangeNotifier {
       'export_error': 'Ошибка экспорта',
       'import_error': 'Ошибка импорта',
       'language_changed': 'Язык изменен',
+
+      // History page
+      'no_workout_history': 'Нет истории тренировок',
+      'complete_workout_to_see_history': 'Завершите первую тренировку, чтобы увидеть её здесь',
 
       // Muscle Categories
       'category_chest': 'Грудь',

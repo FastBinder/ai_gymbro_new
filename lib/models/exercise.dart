@@ -133,25 +133,57 @@ extension MuscleCategoryExtension on MuscleCategory {
 class Exercise {
   final String id;
   final String name;
+  final String? nameRu; // Добавлено
   final DetailedMuscle primaryMuscle;
   final List<DetailedMuscle> secondaryMuscles;
   final String description;
+  final String? descriptionRu; // Добавлено
   final String? imageUrl;
   final String? videoUrl;
   final List<String>? instructions;
+  final List<String>? instructionsRu; // Добавлено
   final List<String>? tips;
+  final List<String>? tipsRu; // Добавлено
 
   const Exercise({
     required this.id,
     required this.name,
+    this.nameRu, // Добавлено
     required this.primaryMuscle,
     required this.secondaryMuscles,
     required this.description,
+    this.descriptionRu, // Добавлено
     this.imageUrl,
     this.videoUrl,
     this.instructions,
+    this.instructionsRu, // Добавлено
     this.tips,
+    this.tipsRu, // Добавлено
   });
+
+  /// Получить локализованное название
+  String getLocalizedName(String language) {
+    if (isCustom) return name;
+    return language == 'ru' && nameRu != null ? nameRu! : name;
+  }
+
+  /// Получить локализованное описание
+  String getLocalizedDescription(String language) {
+    if (isCustom) return description;
+    return language == 'ru' && descriptionRu != null ? descriptionRu! : description;
+  }
+
+  /// Получить локализованные инструкции
+  List<String>? getLocalizedInstructions(String language) {
+    if (isCustom) return instructions;
+    return language == 'ru' && instructionsRu != null ? instructionsRu : instructions;
+  }
+
+  /// Получить локализованные советы
+  List<String>? getLocalizedTips(String language) {
+    if (isCustom) return tips;
+    return language == 'ru' && tipsRu != null ? tipsRu : tips;
+  }
 
   /// Все задействованные мышцы
   List<DetailedMuscle> get allMuscles => [primaryMuscle, ...secondaryMuscles];
@@ -178,75 +210,93 @@ class Exercise {
     return {
       'id': id,
       'name': name,
+      'nameRu': nameRu,
       'primaryMuscle': primaryMuscle.name,
       'secondaryMuscles': secondaryMuscles.map((m) => m.name).join('|'),
       'description': description,
+      'descriptionRu': descriptionRu,
       'imageUrl': imageUrl,
       'videoUrl': videoUrl,
       'instructions': instructions?.join('|||'),
+      'instructionsRu': instructionsRu?.join('|||'),
       'tips': tips?.join('|||'),
+      'tipsRu': tipsRu?.join('|||'),
     };
   }
 
   factory Exercise.fromMap(Map<String, dynamic> map) {
     return Exercise(
-      id: map['id'],
-      name: map['name'],
-      primaryMuscle: DetailedMuscle.fromString(map['primaryMuscle']),
+      id: map['id']?.toString() ?? '',
+      name: map['name'] ?? '',
+      nameRu: map['nameRu'] ?? map['name_ru'],
+      primaryMuscle: DetailedMuscle.fromString(map['primaryMuscle'] ?? 'middleChest'),
       secondaryMuscles: (map['secondaryMuscles'] as String?)
           ?.split('|')
           .where((s) => s.isNotEmpty)
           .map((s) => DetailedMuscle.fromString(s))
           .toList() ??
           [],
-      description: map['description'],
+      description: map['description'] ?? '',
+      descriptionRu: map['descriptionRu'] ?? map['description_ru'],
       imageUrl: map['imageUrl'],
       videoUrl: map['videoUrl'],
       instructions: (map['instructions'] as String?)
           ?.split('|||')
           .where((s) => s.isNotEmpty)
           .toList(),
+      instructionsRu: (map['instructionsRu'] as String?)
+          ?.split('|||')
+          .where((s) => s.isNotEmpty)
+          .toList() ??
+          (map['instructions_ru'] as String?)
+              ?.split('|||')
+              .where((s) => s.isNotEmpty)
+              .toList(),
       tips: (map['tips'] as String?)
           ?.split('|||')
           .where((s) => s.isNotEmpty)
           .toList(),
+      tipsRu: (map['tipsRu'] as String?)
+          ?.split('|||')
+          .where((s) => s.isNotEmpty)
+          .toList() ??
+          (map['tips_ru'] as String?)
+              ?.split('|||')
+              .where((s) => s.isNotEmpty)
+              .toList(),
     );
   }
 
   Exercise copyWith({
     String? id,
     String? name,
+    String? nameRu,
     DetailedMuscle? primaryMuscle,
     List<DetailedMuscle>? secondaryMuscles,
     String? description,
+    String? descriptionRu,
     String? imageUrl,
     String? videoUrl,
     List<String>? instructions,
+    List<String>? instructionsRu,
     List<String>? tips,
+    List<String>? tipsRu,
   }) {
     return Exercise(
       id: id ?? this.id,
       name: name ?? this.name,
+      nameRu: nameRu ?? this.nameRu,
       primaryMuscle: primaryMuscle ?? this.primaryMuscle,
       secondaryMuscles: secondaryMuscles ?? this.secondaryMuscles,
       description: description ?? this.description,
+      descriptionRu: descriptionRu ?? this.descriptionRu,
       imageUrl: imageUrl ?? this.imageUrl,
       videoUrl: videoUrl ?? this.videoUrl,
       instructions: instructions ?? this.instructions,
+      instructionsRu: instructionsRu ?? this.instructionsRu,
       tips: tips ?? this.tips,
+      tipsRu: tipsRu ?? this.tipsRu,
     );
-  }
-
-  /// Get localized name from ID
-  String getLocalizedName(String Function(String) localizationGetter) {
-    // For custom exercises (ID is timestamp), return the original name
-    if (id.length > 10 && RegExp(r'^\d+$').hasMatch(id)) {
-      return name;
-    }
-    // For built-in exercises, try to get localized name from ID
-    // If localization not found, return original name
-    final localizedName = localizationGetter(id);
-    return localizedName == id ? name : localizedName;
   }
 
   /// Check if exercise is custom

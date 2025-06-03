@@ -23,9 +23,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
   // Database service
   final DatabaseService _db = DatabaseService.instance;
 
-  // Workout data
-  List<Workout> _workouts = [];
-  bool _isLoading = true;
+
 
   // Timer
   Timer? _timer;
@@ -40,7 +38,6 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _loadWorkouts();
     _startTimer();
 
     // Initialize pulse animation for active timer
@@ -90,21 +87,6 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
     super.dispose();
   }
 
-  Future<void> _loadWorkouts() async {
-    setState(() => _isLoading = true);
-    try {
-      final workouts = await _db.getAllWorkouts();
-      setState(() {
-        _workouts = workouts;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading workouts: $e')),
-      );
-    }
-  }
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -310,296 +292,120 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    final loc = context.watch<LocalizationService>();
     final workoutService = context.watch<ActiveWorkoutService>();
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.fitness_center,
-              color: AppColors.primaryRed,
-              size: 28,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              loc.get('nav_workout'),
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: workoutService.isWorkoutActive ? _buildActiveWorkout() : _buildWorkoutList(),
-      floatingActionButton: !workoutService.isWorkoutActive
-          ? Container(
-        height: 64,
-        width: loc.currentLanguage == 'ru' ? 240 : 200,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppColors.primaryRed, AppColors.darkRed],
-          ),
-          borderRadius: BorderRadius.circular(32),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primaryRed.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(32),
-          child: InkWell(
-            onTap: _startWorkout,
-            borderRadius: BorderRadius.circular(32),
-            child: Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.play_arrow, color: Colors.white, size: 28),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        loc.get('start_workout'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      )
-          : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-    );
+    return workoutService.isWorkoutActive ? _buildActiveWorkout() : _buildWorkoutList();
   }
 
   Widget _buildWorkoutList() {
     final loc = context.watch<LocalizationService>();
+    final workoutService = context.watch<ActiveWorkoutService>();
 
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: AppColors.primaryRed,
-        ),
-      );
+    // Если тренировка активна, показываем активную тренировку
+    if (workoutService.isWorkoutActive) {
+      return _buildActiveWorkout();
     }
 
-    if (_workouts.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primaryRed.withOpacity(0.1),
-                    AppColors.darkRed.withOpacity(0.05),
-                  ],
-                ),
-              ),
-              child: const Icon(
-                Icons.fitness_center,
-                size: 80,
-                color: AppColors.primaryRed,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              loc.get('no_workouts_yet'),
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              loc.get('start_first_workout'),
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-      itemCount: _workouts.length,
-      itemBuilder: (context, index) {
-        final workout = _workouts[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          child: GymCard(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => WorkoutDetailsPage(workout: workout),
-                ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryRed.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.calendar_today,
-                      color: AppColors.primaryRed,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          workout.name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 16,
-                              color: AppColors.textSecondary,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              _formatDuration(workout.duration),
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Icon(
-                              Icons.fitness_center,
-                              size: 16,
-                              color: AppColors.textSecondary,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${workout.exercises.length} ${loc.get('exercises')}',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.delete_outline,
-                      color: AppColors.textMuted,
-                    ),
-                    onPressed: () => _deleteWorkout(workout.id),
-                  ),
+    // Иначе показываем экран начала тренировки
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(48),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primaryRed.withOpacity(0.1),
+                  AppColors.darkRed.withOpacity(0.05),
                 ],
               ),
             ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _deleteWorkout(String id) async {
-    final loc = context.read<LocalizationService>();
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: Text(
-          loc.get('delete_workout_question'),
-          style: const TextStyle(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          loc.get('action_cannot_be_undone'),
-          style: TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(loc.get('cancel')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(
-              loc.get('delete'),
-              style: const TextStyle(color: AppColors.warning),
+            child: const Icon(
+              Icons.fitness_center,
+              size: 100,
+              color: AppColors.primaryRed,
             ),
           ),
+          const SizedBox(height: 32),
+          Text(
+            loc.get('ready_to_train'),
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            loc.get('start_workout_motivation'),
+            style: TextStyle(
+              fontSize: 18,
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 48),
+          _buildStartWorkoutButton(loc),
         ],
       ),
     );
-
-    if (confirmed == true) {
-      try {
-        await _db.deleteWorkout(id);
-        await _loadWorkouts();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(loc.get('workout_deleted')),
-            backgroundColor: AppColors.success,
-          ),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error deleting workout: $e'),
-            backgroundColor: AppColors.warning,
-          ),
-        );
-      }
-    }
   }
+
+
+  Widget _buildStartWorkoutButton(LocalizationService loc) {
+    return Container(
+      height: 64,
+      width: loc.currentLanguage == 'ru' ? 240 : 200,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.primaryRed, AppColors.darkRed],
+        ),
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryRed.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(32),
+        child: InkWell(
+          onTap: _startWorkout,
+          borderRadius: BorderRadius.circular(32),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.play_arrow, color: Colors.white, size: 28),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      loc.get('start_workout'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildActiveWorkout() {
     final loc = context.watch<LocalizationService>();
@@ -856,7 +662,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        workoutExercise.exercise.name.toUpperCase(),
+                        workoutExercise.exercise.getLocalizedName(loc.currentLanguage).toUpperCase(),
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -1197,9 +1003,6 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
       // Save to database
       await _db.createWorkout(workout);
 
-      // Reload workouts
-      await _loadWorkouts();
-
       // Clear workout state
       workoutService.finishWorkout();
 
@@ -1294,139 +1097,141 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
       ),
-      insetPadding: const EdgeInsets.fromLTRB(40, 40, 40, 100),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       child: Container(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              loc.get('complete_set'),
-              style: const TextStyle(
-                fontSize: 20,
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (widget.lastWeight != null) ...[
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.primaryRed.withOpacity(0.2),
-                      AppColors.darkRed.withOpacity(0.1),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppColors.primaryRed,
-                    width: 2,
-                  ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                loc.get('complete_set'),
+                style: const TextStyle(
+                  fontSize: 20,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
                 ),
-                child: InkWell(
-                  onTap: () {
-                    widget.onComplete(widget.lastWeight!, widget.lastReps!);
-                    Navigator.of(context).pop();
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        const Icon(
-                          Icons.refresh,
-                          color: AppColors.primaryRed,
-                          size: 32,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          loc.get('same_as_last_set'),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryRed,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          loc.currentLanguage == 'ru'
-                              ? '${widget.lastWeight} кг × ${widget.lastReps} повт'
-                              : '${widget.lastWeight} kg × ${widget.lastReps} reps',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+              ),
+              const SizedBox(height: 24),
+              if (widget.lastWeight != null) ...[
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primaryRed.withOpacity(0.2),
+                        AppColors.darkRed.withOpacity(0.1),
                       ],
                     ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.primaryRed,
+                      width: 2,
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(child: Divider(color: AppColors.border)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      loc.get('or_enter_manually'),
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 12,
-                        letterSpacing: 1.2,
+                  child: InkWell(
+                    onTap: () {
+                      widget.onComplete(widget.lastWeight!, widget.lastReps!);
+                      Navigator.of(context).pop();
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.refresh,
+                            color: AppColors.primaryRed,
+                            size: 32,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            loc.get('same_as_last_set'),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryRed,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            loc.currentLanguage == 'ru'
+                                ? '${widget.lastWeight} кг × ${widget.lastReps} повт'
+                                : '${widget.lastWeight} kg × ${widget.lastReps} reps',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  Expanded(child: Divider(color: AppColors.border)),
-                ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: AppColors.border)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        loc.get('or_enter_manually'),
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: AppColors.border)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+              GymTextField(
+                controller: _weightController,
+                hintText: loc.get('weight_kg'),
+                prefixIcon: Icons.fitness_center,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
               ),
               const SizedBox(height: 16),
-            ],
-            GymTextField(
-              controller: _weightController,
-              hintText: loc.get('weight_kg'),
-              prefixIcon: Icons.fitness_center,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
-            const SizedBox(height: 16),
-            GymTextField(
-              controller: _repsController,
-              hintText: loc.get('reps'),
-              prefixIcon: Icons.repeat,
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlineButton(
-                    text: loc.get('cancel'),
-                    onPressed: () => Navigator.of(context).pop(),
+              GymTextField(
+                controller: _repsController,
+                hintText: loc.get('reps'),
+                prefixIcon: Icons.repeat,
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlineButton(
+                      text: loc.get('cancel'),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: GradientButton(
-                    text: loc.get('save'),
-                    onPressed: () {
-                      final weight = double.tryParse(_weightController.text) ?? 0;
-                      final reps = int.tryParse(_repsController.text) ?? 0;
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: GradientButton(
+                      text: loc.get('save'),
+                      onPressed: () {
+                        final weight = double.tryParse(_weightController.text) ?? 0;
+                        final reps = int.tryParse(_repsController.text) ?? 0;
 
-                      if (weight > 0 && reps > 0) {
-                        widget.onComplete(weight, reps);
-                        Navigator.of(context).pop();
-                      }
-                    },
+                        if (weight > 0 && reps > 0) {
+                          widget.onComplete(weight, reps);
+                          Navigator.of(context).pop();
+                        }
+                      },
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
+      )
     );
   }
 
@@ -1757,7 +1562,7 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    exercise.name,
+                                    exercise.getLocalizedName(loc.currentLanguage),
                                     style: const TextStyle(
                                       color: AppColors.textPrimary,
                                       fontWeight: FontWeight.bold,

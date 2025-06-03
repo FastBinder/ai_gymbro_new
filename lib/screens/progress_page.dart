@@ -8,6 +8,9 @@ import '../models/exercise.dart';
 import '../services/database_service.dart';
 import '../services/localization_service.dart';
 import '../widgets/custom_widgets.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
+
 
 class ProgressPage extends StatefulWidget {
   const ProgressPage({Key? key}) : super(key: key);
@@ -65,61 +68,45 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     final loc = context.watch<LocalizationService>();
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.analytics,
-              color: AppColors.primaryRed,
-              size: 28,
+    return Column(
+      children: [
+        Container(
+          color: AppColors.background,
+          child: TabBar(
+            controller: _tabController,
+            indicatorColor: AppColors.primaryRed,
+            indicatorWeight: 3,
+            labelColor: AppColors.primaryRed,
+            unselectedLabelColor: AppColors.textSecondary,
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
-            const SizedBox(width: 8),
-            Text(
-              loc.get('nav_progress'),
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ],
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.primaryRed,
-          indicatorWeight: 3,
-          labelColor: AppColors.primaryRed,
-          unselectedLabelColor: AppColors.textSecondary,
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
+            tabs: [
+              Tab(text: loc.get('this_week')),
+              Tab(text: loc.get('all_time')),
+            ],
           ),
-          tabs: [
-            Tab(text: loc.get('this_week')),
-            Tab(text: loc.get('all_time')),
-          ],
         ),
-      ),
-      body: _isLoading
-          ? const Center(
-        child: CircularProgressIndicator(
-          color: AppColors.primaryRed,
+        Expanded(
+          child: _isLoading
+              ? const Center(
+            child: CircularProgressIndicator(
+              color: AppColors.primaryRed,
+            ),
+          )
+              : TabBarView(
+            controller: _tabController,
+            children: [
+              _buildWeekStats(),
+              _buildAllTimeStats(),
+            ],
+          ),
         ),
-      )
-          : TabBarView(
-        controller: _tabController,
-        children: [
-          _buildWeekStats(),
-          _buildAllTimeStats(),
-        ],
-      ),
+      ],
     );
   }
+
 
   Widget _buildWeekStats() {
     final loc = context.watch<LocalizationService>();
@@ -667,24 +654,31 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
 
   Widget _buildExerciseProgressCard(String exerciseName, ExerciseProgress progress) {
     final loc = context.watch<LocalizationService>();
+
+    // Получаем историю прогресса для графика
+    final progressHistory = _getExerciseProgressHistory(exerciseName);
+
+    if (progressHistory.isEmpty) return const SizedBox.shrink();
+
     final improvement = ((progress.currentMax - progress.firstMax) / progress.firstMax * 100);
     final isPositive = improvement >= 0;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       child: GymCard(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Заголовок с названием упражнения
               Row(
                 children: [
                   Expanded(
                     child: Text(
                       exerciseName,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
                       ),
@@ -707,7 +701,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${improvement.toStringAsFixed(1)}%',
+                          '${improvement > 0 ? '+' : ''}${improvement.toStringAsFixed(1)}%',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -719,80 +713,45 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+
+              // График
+              SizedBox(
+                height: 200,
+                child: _buildProgressChart(progressHistory, loc),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Статистика
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          loc.get('first'),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        Text(
-                          '${progress.firstMax.toStringAsFixed(1)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          loc.currentLanguage == 'ru' ? '(1ПМ)' : '(1RM)',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
+                  _buildStatColumn(
+                    loc.get('first'),
+                    '${progress.firstMax.toStringAsFixed(1)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
+                    AppColors.textSecondary,
                   ),
                   Icon(
                     Icons.arrow_forward,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textMuted,
+                    size: 20,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          loc.get('current'),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        Text(
-                          '${progress.currentMax.toStringAsFixed(1)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isPositive ? AppColors.success : AppColors.warning,
-                          ),
-                        ),
-                        Text(
-                          loc.currentLanguage == 'ru' ? '(1ПМ)' : '(1RM)',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
+                  _buildStatColumn(
+                    loc.get('current'),
+                    '${progress.currentMax.toStringAsFixed(1)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
+                    isPositive ? AppColors.success : AppColors.warning,
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              Text(
-                loc.getFormatted('performed_times', {'count': progress.timesPerformed}),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textMuted,
+              Center(
+                child: Text(
+                  loc.getFormatted('performed_times', {'count': progress.timesPerformed}),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ),
             ],
@@ -800,6 +759,222 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
         ),
       ),
     );
+  }
+
+  Widget _buildProgressChart(List<ExerciseRecord> history, LocalizationService loc) {
+    if (history.isEmpty) return const SizedBox.shrink();
+
+    // Сортируем по дате
+    history.sort((a, b) => a.date.compareTo(b.date));
+
+    // Находим минимальное и максимальное значения для оси Y
+    double minY = history.map((e) => e.oneRepMax).reduce((a, b) => a < b ? a : b);
+    double maxY = history.map((e) => e.oneRepMax).reduce((a, b) => a > b ? a : b);
+
+    // Добавляем отступы
+    minY = (minY * 0.9).floorToDouble();
+    maxY = (maxY * 1.1).ceilToDouble();
+
+    // Создаем точки для графика
+    final spots = history.asMap().entries.map((entry) {
+      return FlSpot(
+        entry.key.toDouble(),
+        entry.value.oneRepMax,
+      );
+    }).toList();
+
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          horizontalInterval: (maxY - minY) / 5,
+          verticalInterval: 1,
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: AppColors.border,
+              strokeWidth: 1,
+            );
+          },
+          getDrawingVerticalLine: (value) {
+            return FlLine(
+              color: AppColors.border,
+              strokeWidth: 1,
+            );
+          },
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          rightTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 30,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                if (value.toInt() >= 0 && value.toInt() < history.length) {
+                  final date = history[value.toInt()].date;
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      DateFormat('dd/MM').format(date),
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  );
+                }
+                return const Text('');
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: (maxY - minY) / 5,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  value.toStringAsFixed(0),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(color: AppColors.border),
+        ),
+        minX: 0,
+        maxX: (history.length - 1).toDouble(),
+        minY: minY,
+        maxY: maxY,
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            gradient: LinearGradient(
+              colors: [
+                AppColors.primaryRed,
+                AppColors.darkRed,
+              ],
+            ),
+            barWidth: 3,
+            isStrokeCapRound: true,
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, barData, index) {
+                return FlDotCirclePainter(
+                  radius: 4,
+                  color: AppColors.primaryRed,
+                  strokeWidth: 2,
+                  strokeColor: AppColors.surface,
+                );
+              },
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primaryRed.withOpacity(0.3),
+                  AppColors.primaryRed.withOpacity(0.0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+        ],
+          lineTouchData: LineTouchData(
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipColor: (touchedSpot) => AppColors.surface,
+              tooltipBorder: BorderSide(color: AppColors.primaryRed),
+              tooltipRoundedRadius: 8,
+              getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
+                return touchedBarSpots.map((barSpot) {
+                  final index = barSpot.x.toInt();
+                  if (index >= 0 && index < history.length) {
+                    final record = history[index];
+                    return LineTooltipItem(
+                      '${record.oneRepMax.toStringAsFixed(1)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}\n${DateFormat('dd.MM.yyyy').format(record.date)}',
+                      TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    );
+                  }
+                  return null;
+                }).toList();
+              },
+            ),
+            handleBuiltInTouches: true,
+          ),
+      ),
+    );
+  }
+
+  Widget _buildStatColumn(String label, String value, Color valueColor) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: valueColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<ExerciseRecord> _getExerciseProgressHistory(String exerciseName) {
+    final records = <ExerciseRecord>[];
+
+    for (var workout in _allWorkouts) {
+      for (var exercise in workout.exercises) {
+        if (exercise.exercise.name == exerciseName && exercise.sets.isNotEmpty) {
+          // Находим максимальный 1RM для этой тренировки
+          double max1RM = 0;
+          for (var set in exercise.sets) {
+            double oneRepMax = set.weight * (1 + set.reps / 30.0);
+            if (oneRepMax > max1RM) {
+              max1RM = oneRepMax;
+            }
+          }
+
+          if (max1RM > 0) {
+            records.add(ExerciseRecord(
+              oneRepMax: max1RM,
+              date: workout.date,
+            ));
+          }
+        }
+      }
+    }
+
+    return records;
   }
 
   Map<MuscleCategory, MuscleStats> _calculateCategoryStats(List<Workout> workouts) {

@@ -19,20 +19,12 @@ android {
     ndkVersion = "27.0.12077973"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-    }
-    dependencies {
-        implementation("androidx.core:core-ktx:1.12.0")
-        implementation("androidx.activity:activity-ktx:1.8.2")
-
-        // Для поддержки edge-to-edge
-        implementation("androidx.core:core:1.12.0")
-        implementation("androidx.window:window:1.2.0")
+        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -55,11 +47,17 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
-            // Удалена строка с debug подписью!
         }
     }
 }
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.activity:activity-ktx:1.8.2")
+    implementation("androidx.core:core:1.12.0")
+    implementation("androidx.window:window:1.2.0")
 }

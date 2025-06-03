@@ -43,7 +43,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -156,7 +156,7 @@ class DatabaseService {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 3) {
+    if (oldVersion < 4) {
       // Добавляем таблицу кастомных упражнений если её нет
       await db.execute('''
         CREATE TABLE IF NOT EXISTS custom_exercises(
@@ -312,6 +312,7 @@ class DatabaseService {
     return Exercise(
       id: map['id'].toString(),
       name: map['name'] ?? '',
+      nameRu: map['name_ru'], // Добавлено
       primaryMuscle: DetailedMuscle.values[map['primary_muscle'] ?? 0],
       secondaryMuscles: map['secondary_muscles'] != null &&
           (map['secondary_muscles'] as String).isNotEmpty
@@ -321,13 +322,24 @@ class DatabaseService {
           .toList()
           : [],
       description: map['description'] ?? '',
+      descriptionRu: map['description_ru'], // Добавлено
+      imageUrl: map['imageUrl'],
+      videoUrl: map['videoUrl'],
       instructions: map['instructions'] != null &&
           (map['instructions'] as String).isNotEmpty
           ? (map['instructions'] as String).split('|||')
           : null,
+      instructionsRu: map['instructions_ru'] != null && // Добавлено
+          (map['instructions_ru'] as String).isNotEmpty
+          ? (map['instructions_ru'] as String).split('|||')
+          : null,
       tips: map['tips'] != null &&
           (map['tips'] as String).isNotEmpty
           ? (map['tips'] as String).split('|||')
+          : null,
+      tipsRu: map['tips_ru'] != null && // Добавлено
+          (map['tips_ru'] as String).isNotEmpty
+          ? (map['tips_ru'] as String).split('|||')
           : null,
     );
   }
@@ -356,9 +368,21 @@ class DatabaseService {
     final db = await database;
 
     final id = DateTime.now().millisecondsSinceEpoch.toString();
-    final customExercise = exercise.copyWith(id: id);
 
-    await db.insert('custom_exercises', customExercise.toMap());
+    // Сохраняем с правильным форматом для custom_exercises
+    final customExerciseMap = {
+      'id': id,
+      'name': exercise.name,
+      'primaryMuscle': exercise.primaryMuscle.name,
+      'secondaryMuscles': exercise.secondaryMuscles.map((m) => m.name).join('|'),
+      'description': exercise.description,
+      'imageUrl': exercise.imageUrl,
+      'videoUrl': exercise.videoUrl,
+      'instructions': exercise.instructions?.join('|||'),
+      'tips': exercise.tips?.join('|||'),
+    };
+
+    await db.insert('custom_exercises', customExerciseMap);
 
     // Очищаем кеш всех упражнений
     _allExercisesCache = null;

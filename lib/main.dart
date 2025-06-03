@@ -9,6 +9,8 @@ import 'screens/progress_page.dart';
 import 'screens/profile_page.dart';
 import 'services/localization_service.dart';
 import 'services/active_workout_service.dart';
+import 'widgets/navigation_drawer.dart';
+import 'screens/workout_history_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -141,21 +143,6 @@ class GymTrackerApp extends StatelessWidget {
           ),
         ),
 
-        // Bottom Navigation Bar Theme
-        navigationBarTheme: NavigationBarThemeData(
-          backgroundColor: const Color(0xFF0A0A0A),
-          indicatorColor: const Color(0xFFDC2626),
-          labelTextStyle: MaterialStateProperty.all(
-            const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          ),
-          iconTheme: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.selected)) {
-              return const IconThemeData(color: Colors.white, size: 28);
-            }
-            return const IconThemeData(color: Color(0xFF6B7280), size: 24);
-          }),
-        ),
-
         useMaterial3: true,
       ),
       home: const HomePage(),
@@ -170,61 +157,68 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
+class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   final List<Widget> _pages = [
     const WorkoutPage(),
+    const WorkoutHistoryPage(),
     const ExercisesPage(),
     const ProgressPage(),
     const ProfilePage(),
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
-    _animationController.forward();
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
   void _onDestinationSelected(int index) {
-    if (_selectedIndex != index) {
-      _animationController.reverse().then((_) {
-        setState(() {
-          _selectedIndex = index;
-        });
-        _animationController.forward();
-      });
-    }
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
-  @override
   @override
   Widget build(BuildContext context) {
     final loc = context.watch<LocalizationService>();
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Colors.black,
-      body: SafeArea(  // <-- ДОБАВИТЬ SafeArea ЗДЕСЬ
-        bottom: false,  // <-- Позволяем навбару быть под контентом
+      endDrawer: CustomNavigationDrawer(
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onDestinationSelected,
+      ),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0A0A0A),
+        elevation: 0,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _getPageIcon(_selectedIndex),
+              color: const Color(0xFFDC2626),
+              size: 28,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _getPageTitle(_selectedIndex, loc),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          AnimatedMenuButton(
+            onPressed: () {
+              _scaffoldKey.currentState?.openEndDrawer();
+            },
+          ),
+        ],
+        // Убираем стандартную кнопку drawer
+        automaticallyImplyLeading: false,
+      ),
+      body: SafeArea(
         child: Stack(
           children: [
             // Gradient background
@@ -240,52 +234,44 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
               ),
             ),
-            // Page content with fade animation
-            FadeTransition(  // <-- УБРАТЬ SafeArea ОТСЮДА
-              opacity: _fadeAnimation,
-              child: _pages[_selectedIndex],
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFDC2626).withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: NavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: _onDestinationSelected,
-          height: 80,
-          destinations: [
-            NavigationDestination(
-              icon: const Icon(Icons.fitness_center_outlined),
-              selectedIcon: const Icon(Icons.fitness_center),
-              label: loc.get('nav_workout'),
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.list_outlined),
-              selectedIcon: const Icon(Icons.list),
-              label: loc.get('nav_exercises'),
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.analytics_outlined),
-              selectedIcon: const Icon(Icons.analytics),
-              label: loc.get('nav_progress'),
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.person_outline),
-              selectedIcon: const Icon(Icons.person),
-              label: loc.get('nav_profile'),
-            ),
+            // Page content
+            _pages[_selectedIndex],
           ],
         ),
       ),
     );
   }
-}
+
+  IconData _getPageIcon(int index) {
+    switch (index) {
+      case 0:
+        return Icons.fitness_center;
+      case 1:
+        return Icons.history;
+      case 2:
+        return Icons.list;
+      case 3:
+        return Icons.analytics;
+      case 4:
+        return Icons.person;
+      default:
+        return Icons.fitness_center;
+    }
+  }
+
+  String _getPageTitle(int index, LocalizationService loc) {
+    switch (index) {
+      case 0:
+        return loc.get('nav_workout');
+      case 1:
+        return loc.get('nav_history');
+      case 2:
+        return loc.get('nav_exercises');
+      case 3:
+        return loc.get('nav_progress');
+      case 4:
+        return loc.get('nav_profile');
+      default:
+        return '';
+    }
+  }}

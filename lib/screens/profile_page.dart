@@ -47,46 +47,21 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     final loc = context.watch<LocalizationService>();
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.person,
-              color: AppColors.primaryRed,
-              size: 28,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              loc.get('nav_profile'),
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildStatisticsSection(),
-            const SizedBox(height: 24),
-            _buildSettingsSection(),
-            const SizedBox(height: 24),
-            _buildDataManagementSection(),
-          ],
-        ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildStatisticsSection(),
+          const SizedBox(height: 24),
+          _buildSettingsSection(),
+          const SizedBox(height: 24),
+          _buildDataManagementSection(),
+        ],
       ),
     );
   }
+
 
   Widget _buildStatisticsSection() {
     final loc = context.watch<LocalizationService>();
