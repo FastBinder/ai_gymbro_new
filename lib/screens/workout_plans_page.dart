@@ -67,55 +67,34 @@ class _WorkoutPlansPageState extends State<WorkoutPlansPage> with TickerProvider
   Widget build(BuildContext context) {
     final loc = context.watch<LocalizationService>();
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0A0A),
-        elevation: 0,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.calendar_month,
-              color: AppColors.primaryRed,
-              size: 28,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              loc.currentLanguage == 'ru' ? 'ПЛАНЫ ТРЕНИРОВОК' : 'WORKOUT PLANS',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ],
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: _isLoading
-          ? const Center(
+    if (_isLoading) {
+      return const Center(
         child: CircularProgressIndicator(
           color: AppColors.primaryRed,
         ),
-      )
-          : FadeTransition(
-        opacity: _fadeAnimation,
-        child: _plans.isEmpty
-            ? _buildEmptyState(loc)
-            : _buildPlansList(loc),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _createNewPlan(context),
-        backgroundColor: AppColors.primaryRed,
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
-      ),
+      );
+    }
+
+    return Stack(
+      children: [
+        FadeTransition(
+          opacity: _fadeAnimation,
+          child: _plans.isEmpty
+              ? _buildEmptyState(loc)
+              : _buildPlansList(loc),
+        ),
+        Positioned(
+          bottom: 24,
+          right: 24,
+          child: FloatingActionButton(
+            onPressed: () => _createNewPlan(context),
+            backgroundColor: AppColors.primaryRed,
+            child: const Icon(Icons.add, color: Colors.white, size: 28),
+          ),
+        ),
+      ],
     );
   }
-
   Widget _buildEmptyState(LocalizationService loc) {
     return Center(
       child: Column(
