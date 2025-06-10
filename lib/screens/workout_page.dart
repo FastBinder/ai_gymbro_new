@@ -13,6 +13,9 @@ import '../services/active_workout_service.dart';
 import '../widgets/custom_widgets.dart';
 import 'workout_details_page.dart';
 import 'workout_plans_page.dart';
+import '../widgets/optimized_timer.dart';
+import '../widgets/optimized_finish_button.dart';
+import '../widgets/optimized_buttons.dart';
 
 class WorkoutPage extends StatefulWidget {
   const WorkoutPage({Key? key}) : super(key: key);
