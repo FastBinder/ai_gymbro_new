@@ -36,6 +36,7 @@ void main() async {
   // Ждем загрузку сохраненного состояния
   await workoutService.loadSavedState();
 
+
   runApp(
     MultiProvider(
       providers: [

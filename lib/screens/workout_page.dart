@@ -11,11 +11,11 @@ import '../services/database_service.dart';
 import '../services/localization_service.dart';
 import '../services/active_workout_service.dart';
 import '../widgets/custom_widgets.dart';
-import 'workout_details_page.dart';
-import 'workout_plans_page.dart';
 import '../widgets/optimized_timer.dart';
 import '../widgets/optimized_finish_button.dart';
 import '../widgets/optimized_buttons.dart';
+import 'workout_details_page.dart';
+import 'workout_plans_page.dart';
 
 class WorkoutPage extends StatefulWidget {
   const WorkoutPage({Key? key}) : super(key: key);
@@ -28,274 +28,9 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
   // Database service
   final DatabaseService _db = DatabaseService.instance;
 
-  // Timer
-  Timer? _timer;
-
-  // Animation controllers
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
-  late AnimationController _holdController;
-  late Animation<double> _holdAnimation;
-  bool _isHolding = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _startTimer();
-
-    // Initialize pulse animation for active timer
-    _pulseController = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    _pulseAnimation = Tween(
-      begin: 0.8,
-      end: 1.2,
-    ).animate(CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeInOut,
-    ));
-
-    // Initialize hold animation
-    _holdController = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    );
-
-    _holdAnimation = Tween(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _holdController,
-      curve: Curves.easeInOut,
-    ));
-
-    _holdController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _finishWorkout();
-        _holdController.reset();
-        setState(() {
-          _isHolding = false;
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _pulseController.dispose();
-    _holdController.dispose();
-    super.dispose();
-  }
-
-  void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) setState(() {});
-    });
-  }
-
-  Widget _buildTimersSection() {
-    final loc = context.watch<LocalizationService>();
-    final workoutService = context.watch<ActiveWorkoutService>();
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppColors.surface,
-            AppColors.surface.withOpacity(0),
-          ],
-        ),
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          // Main workout timer
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceLight,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.primaryRed.withOpacity(0.3),
-                width: 2,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      loc.get('workout_time'),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatDuration(workoutService.workoutDuration),
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryRed.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: ScaleTransition(
-                    scale: _pulseAnimation,
-                    child: const Icon(
-                      Icons.timer,
-                      color: AppColors.primaryRed,
-                      size: 32,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Rest and Set timers
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: workoutService.isRestTimerActive
-                        ? AppColors.warning.withOpacity(0.1)
-                        : AppColors.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: workoutService.isRestTimerActive
-                          ? AppColors.warning
-                          : AppColors.border,
-                      width: 2,
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.pause_circle_filled,
-                            size: 20,
-                            color: workoutService.isRestTimerActive
-                                ? AppColors.warning
-                                : AppColors.textMuted,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            loc.get('rest'),
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: workoutService.isRestTimerActive
-                                  ? AppColors.warning
-                                  : AppColors.textMuted,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _formatDuration(workoutService.restDuration),
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: workoutService.isRestTimerActive
-                              ? AppColors.textPrimary
-                              : AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: workoutService.isSetTimerActive
-                        ? AppColors.success.withOpacity(0.1)
-                        : AppColors.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: workoutService.isSetTimerActive
-                          ? AppColors.success
-                          : AppColors.border,
-                      width: 2,
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.play_circle_filled,
-                            size: 20,
-                            color: workoutService.isSetTimerActive
-                                ? AppColors.success
-                                : AppColors.textMuted,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            loc.get('set'),
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: workoutService.isSetTimerActive
-                                  ? AppColors.success
-                                  : AppColors.textMuted,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _formatDuration(workoutService.setDuration),
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: workoutService.isSetTimerActive
-                              ? AppColors.textPrimary
-                              : AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final workoutService = context.watch<ActiveWorkoutService>();
-
     return workoutService.isWorkoutActive ? _buildActiveWorkout() : _buildWorkoutList();
   }
 
@@ -356,54 +91,12 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
   }
 
   Widget _buildStartWorkoutButton(LocalizationService loc) {
-    return Container(
-      height: 64,
+    return OptimizedGradientButton(
+      text: loc.get('start_workout'),
+      icon: Icons.play_arrow,
+      onPressed: _showWorkoutTypeSelection,
       width: loc.currentLanguage == 'ru' ? 240 : 200,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primaryRed, AppColors.darkRed],
-        ),
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryRed.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(32),
-        child: InkWell(
-          onTap: _showWorkoutTypeSelection,
-          borderRadius: BorderRadius.circular(32),
-          child: Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.play_arrow, color: Colors.white, size: 28),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      loc.get('start_workout'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      height: 64,
     );
   }
 
@@ -788,7 +481,15 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
 
     return Column(
       children: [
-        _buildTimersSection(),
+        // Используем оптимизированную секцию таймеров
+        OptimizedTimersSection(
+          workoutStartTime: workoutService.workoutStartTime!,
+          restStartTime: workoutService.restStartTime,
+          setStartTime: workoutService.setStartTime,
+          isRestTimerActive: workoutService.isRestTimerActive,
+          isSetTimerActive: workoutService.isSetTimerActive,
+          localize: (key) => loc.get(key),
+        ),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.all(16),
@@ -833,158 +534,13 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
             ],
           ),
         ),
-        _buildFinishButton(),
+        // Используем оптимизированную кнопку завершения
+        OptimizedFinishButton(
+          onFinish: _finishWorkout,
+          idleText: loc.get('finish_workout'),
+          holdText: loc.get('hold_to_finish') ?? 'HOLD TO FINISH',
+        ),
       ],
-    );
-  }
-
-  Widget _buildFinishButton() {
-    final loc = context.watch<LocalizationService>();
-
-    return GestureDetector(
-      onTapDown: (_) {
-        setState(() {
-          _isHolding = true;
-        });
-        _holdController.forward();
-      },
-      onTapUp: (_) {
-        setState(() {
-          _isHolding = false;
-        });
-        _holdController.reverse();
-      },
-      onTapCancel: () {
-        setState(() {
-          _isHolding = false;
-        });
-        _holdController.reverse();
-      },
-      child: AnimatedBuilder(
-        animation: _holdAnimation,
-        builder: (context, child) {
-          return Container(
-            height: 56,
-            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Stack(
-              children: [
-                // Background container
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.warning.withOpacity(0.3),
-                        AppColors.primaryRed.withOpacity(0.3),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(
-                      color: _isHolding
-                          ? AppColors.primaryRed
-                          : AppColors.primaryRed.withOpacity(0.5),
-                      width: 2,
-                    ),
-                  ),
-                ),
-                // Animated fill
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(28),
-                  child: AnimatedBuilder(
-                    animation: _holdAnimation,
-                    builder: (context, child) {
-                      return ShaderMask(
-                        shaderCallback: (rect) {
-                          return LinearGradient(
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                            colors: const [
-                              AppColors.warning,
-                              AppColors.primaryRed,
-                            ],
-                            stops: [0.0, _holdAnimation.value],
-                          ).createShader(rect);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(28),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                // Progress indicator overlay
-                if (_isHolding)
-                  Positioned.fill(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(28),
-                      child: LinearProgressIndicator(
-                        value: _holdAnimation.value,
-                        backgroundColor: Colors.transparent,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.primaryRed.withOpacity(0.3),
-                        ),
-                      ),
-                    ),
-                  ),
-                // Content
-                Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          _isHolding ? Icons.timer : Icons.stop,
-                          color: _isHolding
-                              ? Colors.white.withOpacity(0.9)
-                              : Colors.white,
-                          size: 24,
-                          key: ValueKey(_isHolding),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 200),
-                        style: TextStyle(
-                          color: _isHolding
-                              ? Colors.white.withOpacity(0.9)
-                              : Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                        ),
-                        child: Text(
-                          _isHolding
-                              ? loc.get('hold_to_finish') ?? 'HOLD TO FINISH'
-                              : loc.get('finish_workout'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Circular progress around button
-                if (_isHolding)
-                  Positioned.fill(
-                    child: Padding(
-                      padding: const EdgeInsets.all(2),
-                      child: CircularProgressIndicator(
-                        value: _holdAnimation.value,
-                        strokeWidth: 3,
-                        backgroundColor: Colors.transparent,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.primaryRed,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          );
-        },
-      ),
     );
   }
 
@@ -1136,114 +692,34 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
               ),
             ],
             const SizedBox(height: 16),
-            // Action buttons
+            // Action buttons - используем оптимизированные кнопки
             Row(
               children: [
                 Expanded(
-                  child: Container(
+                  child: OptimizedGradientButton(
+                    text: loc.get('start_set'),
+                    icon: Icons.play_arrow,
+                    onPressed: isActive && workoutService.isSetTimerActive
+                        ? () {} // disabled
+                        : () => _startSet(index),
+                    colors: isActive && workoutService.isSetTimerActive
+                        ? [AppColors.textMuted, AppColors.textMuted.withOpacity(0.8)]
+                        : [AppColors.success, const Color(0xFF059669)],
                     height: 48,
-                    decoration: BoxDecoration(
-                      gradient: isActive && workoutService.isSetTimerActive
-                          ? LinearGradient(
-                        colors: [
-                          AppColors.textMuted,
-                          AppColors.textMuted.withOpacity(0.8),
-                        ],
-                      )
-                          : const LinearGradient(
-                        colors: [
-                          AppColors.success,
-                          Color(0xFF059669),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: isActive && !workoutService.isSetTimerActive
-                          ? [
-                        BoxShadow(
-                          color: AppColors.success.withOpacity(0.3),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                          : [],
-                    ),
-                    child: MaterialButton(
-                      onPressed: isActive && workoutService.isSetTimerActive
-                          ? null
-                          : () => _startSet(index),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.play_arrow, color: Colors.white, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            loc.get('start_set'),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Container(
+                  child: OptimizedGradientButton(
+                    text: loc.get('complete'),
+                    icon: Icons.check,
+                    onPressed: isActive && workoutService.isSetTimerActive
+                        ? () => _completeSet(index, workoutExercise)
+                        : () {}, // disabled
+                    colors: isActive && workoutService.isSetTimerActive
+                        ? [const Color(0xFF3B82F6), const Color(0xFF2563EB)]
+                        : [AppColors.textMuted, AppColors.textMuted.withOpacity(0.8)],
                     height: 48,
-                    decoration: BoxDecoration(
-                      gradient: isActive && workoutService.isSetTimerActive
-                          ? const LinearGradient(
-                        colors: [
-                          Color(0xFF3B82F6),
-                          Color(0xFF2563EB),
-                        ],
-                      )
-                          : LinearGradient(
-                        colors: [
-                          AppColors.textMuted,
-                          AppColors.textMuted.withOpacity(0.8),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: isActive && workoutService.isSetTimerActive
-                          ? [
-                        BoxShadow(
-                          color: const Color(0xFF3B82F6).withOpacity(0.3),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                          : [],
-                    ),
-                    child: MaterialButton(
-                      onPressed: isActive && workoutService.isSetTimerActive
-                          ? () => _completeSet(index, workoutExercise)
-                          : null,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.check, color: Colors.white, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            loc.get('complete'),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
                 ),
               ],
@@ -1393,22 +869,6 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
           backgroundColor: AppColors.warning,
         ),
       );
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
-
-  String _formatDuration(Duration duration) {
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes % 60;
-    final seconds = duration.inSeconds % 60;
-
-    if (hours > 0) {
-      return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    } else {
-      return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     }
   }
 
@@ -1580,14 +1040,14 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
                 Row(
                   children: [
                     Expanded(
-                      child: OutlineButton(
+                      child: OptimizedOutlineButton(
                         text: loc.get('cancel'),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: GradientButton(
+                      child: OptimizedGradientButton(
                         text: loc.get('save'),
                         onPressed: () {
                           final weight = double.tryParse(_weightController.text) ?? 0;
@@ -1617,7 +1077,7 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
   }
 }
 
-// Exercise Selection Dialog with Search and localization
+// Exercise Selection Dialog остается прежним
 class _ExerciseSelectionDialog extends StatefulWidget {
   final List<Exercise> exercises;
   final Function(Exercise) onSelect;
@@ -1645,9 +1105,6 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
       return matchesSearch && matchesCategory;
     }).toList();
   }
-
-  // Get unique muscle groups from exercises
-  List<MuscleCategory> get _availableCategories => MuscleCategory.values;
 
   IconData _getCategoryIcon(MuscleCategory category) {
     switch (category) {
