@@ -32,6 +32,9 @@ void main() async {
   // Инициализация сервиса тренировки
   final workoutService = ActiveWorkoutService();
 
+  // Ждем загрузку сохраненного состояния
+  await workoutService.loadSavedState();
+
   runApp(
     MultiProvider(
       providers: [
@@ -157,7 +160,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -168,6 +171,38 @@ class _HomePageState extends State<HomePage> {
     const ProgressPage(),
     const ProfilePage(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Добавляем observer для отслеживания жизненного цикла приложения
+    WidgetsBinding.instance.addObserver(this);
+
+    // Если есть активная тренировка, переключаемся на страницу тренировки
+    final workoutService = context.read<ActiveWorkoutService>();
+    if (workoutService.isWorkoutActive) {
+      _selectedIndex = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Сохраняем состояние при сворачивании приложения
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      final workoutService = context.read<ActiveWorkoutService>();
+      if (workoutService.isWorkoutActive) {
+        // Состояние уже автоматически сохраняется в ActiveWorkoutService
+        print('App paused/detached - workout state saved');
+      }
+    }
+  }
 
   void _onDestinationSelected(int index) {
     setState(() {
@@ -274,4 +309,5 @@ class _HomePageState extends State<HomePage> {
       default:
         return '';
     }
-  }}
+  }
+}

@@ -11,7 +11,6 @@ import '../widgets/custom_widgets.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 
-
 class ProgressPage extends StatefulWidget {
   const ProgressPage({Key? key}) : super(key: key);
 
@@ -106,7 +105,6 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
       ],
     );
   }
-
 
   Widget _buildWeekStats() {
     final loc = context.watch<LocalizationService>();
@@ -305,7 +303,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.fitness_center,
             size: 100,
             color: AppColors.textMuted,
@@ -322,7 +320,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               color: AppColors.textSecondary,
             ),
@@ -500,7 +498,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                       const SizedBox(height: 4),
                       Text(
                         '$setsDisplay ${loc.get('sets')} • ${stat.reps} ${loc.get('reps')}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
                           color: AppColors.textSecondary,
                         ),
@@ -593,7 +591,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                         ),
                         Text(
                           '$setsDisplay ${loc.get('sets')} • ${stat.reps} ${loc.get('reps')}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 13,
                             color: AppColors.textSecondary,
                           ),
@@ -631,7 +629,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
         ),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
             color: AppColors.textSecondary,
           ),
@@ -732,7 +730,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                     '${progress.firstMax.toStringAsFixed(1)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
                     AppColors.textSecondary,
                   ),
-                  Icon(
+                  const Icon(
                     Icons.arrow_forward,
                     color: AppColors.textMuted,
                     size: 20,
@@ -748,7 +746,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
               Center(
                 child: Text(
                   loc.getFormatted('performed_times', {'count': progress.timesPerformed}),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textMuted,
                   ),
@@ -791,13 +789,13 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
           horizontalInterval: (maxY - minY) / 5,
           verticalInterval: 1,
           getDrawingHorizontalLine: (value) {
-            return FlLine(
+            return const FlLine(
               color: AppColors.border,
               strokeWidth: 1,
             );
           },
           getDrawingVerticalLine: (value) {
-            return FlLine(
+            return const FlLine(
               color: AppColors.border,
               strokeWidth: 1,
             );
@@ -805,10 +803,10 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
         ),
         titlesData: FlTitlesData(
           show: true,
-          rightTitles: AxisTitles(
+          rightTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
           ),
-          topTitles: AxisTitles(
+          topTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
           ),
           bottomTitles: AxisTitles(
@@ -823,7 +821,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
                       DateFormat('dd/MM').format(date),
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 12,
                       ),
@@ -842,7 +840,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
               getTitlesWidget: (value, meta) {
                 return Text(
                   value.toStringAsFixed(0),
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 12,
                   ),
@@ -863,7 +861,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               colors: [
                 AppColors.primaryRed,
                 AppColors.darkRed,
@@ -895,31 +893,31 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
             ),
           ),
         ],
-          lineTouchData: LineTouchData(
-            touchTooltipData: LineTouchTooltipData(
-              getTooltipColor: (touchedSpot) => AppColors.surface,
-              tooltipBorder: BorderSide(color: AppColors.primaryRed),
-              tooltipRoundedRadius: 8,
-              getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
-                return touchedBarSpots.map((barSpot) {
-                  final index = barSpot.x.toInt();
-                  if (index >= 0 && index < history.length) {
-                    final record = history[index];
-                    return LineTooltipItem(
-                      '${record.oneRepMax.toStringAsFixed(1)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}\n${DateFormat('dd.MM.yyyy').format(record.date)}',
-                      TextStyle(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    );
-                  }
-                  return null;
-                }).toList();
-              },
-            ),
-            handleBuiltInTouches: true,
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (touchedSpot) => AppColors.surface,
+            tooltipBorder: const BorderSide(color: AppColors.primaryRed),
+            tooltipRoundedRadius: 8,
+            getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
+              return touchedBarSpots.map((barSpot) {
+                final index = barSpot.x.toInt();
+                if (index >= 0 && index < history.length) {
+                  final record = history[index];
+                  return LineTooltipItem(
+                    '${record.oneRepMax.toStringAsFixed(1)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}\n${DateFormat('dd.MM.yyyy').format(record.date)}',
+                    const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  );
+                }
+                return null;
+              }).toList();
+            },
           ),
+          handleBuiltInTouches: true,
+        ),
       ),
     );
   }
@@ -929,7 +927,7 @@ class _ProgressPageState extends State<ProgressPage> with SingleTickerProviderSt
       children: [
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
             color: AppColors.textSecondary,
             fontWeight: FontWeight.bold,

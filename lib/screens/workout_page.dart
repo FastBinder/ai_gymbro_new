@@ -23,8 +23,6 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
   // Database service
   final DatabaseService _db = DatabaseService.instance;
 
-
-
   // Timer
   Timer? _timer;
 
@@ -87,12 +85,12 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
     super.dispose();
   }
 
-
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) setState(() {});
     });
   }
+
   Widget _buildTimersSection() {
     final loc = context.watch<LocalizationService>();
     final workoutService = context.watch<ActiveWorkoutService>();
@@ -289,7 +287,6 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     final workoutService = context.watch<ActiveWorkoutService>();
@@ -340,7 +337,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
           const SizedBox(height: 12),
           Text(
             loc.get('start_workout_motivation'),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18,
               color: AppColors.textSecondary,
             ),
@@ -352,7 +349,6 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
       ),
     );
   }
-
 
   Widget _buildStartWorkoutButton(LocalizationService loc) {
     return Container(
@@ -405,7 +401,6 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
       ),
     );
   }
-
 
   Widget _buildActiveWorkout() {
     final loc = context.watch<LocalizationService>();
@@ -748,7 +743,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
                           ),
                           Text(
                             '${(set.weight * set.reps).toStringAsFixed(0)} ${loc.currentLanguage == 'ru' ? 'кг' : 'kg'}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 14,
                             ),
@@ -902,7 +897,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              const Icon(
                 Icons.star,
                 size: 14,
                 color: AppColors.primaryRed,
@@ -940,7 +935,6 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
       ],
     );
   }
-
 
   void _startWorkout() {
     context.read<ActiveWorkoutService>().startWorkout();
@@ -1093,145 +1087,145 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
     final loc = context.watch<LocalizationService>();
 
     return Dialog(
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-      ),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                loc.get('complete_set'),
-                style: const TextStyle(
-                  fontSize: 20,
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 24),
-              if (widget.lastWeight != null) ...[
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primaryRed.withOpacity(0.2),
-                        AppColors.darkRed.withOpacity(0.1),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.primaryRed,
-                      width: 2,
-                    ),
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  loc.get('complete_set'),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
-                  child: InkWell(
-                    onTap: () {
-                      widget.onComplete(widget.lastWeight!, widget.lastReps!);
-                      Navigator.of(context).pop();
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.refresh,
-                            color: AppColors.primaryRed,
-                            size: 32,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            loc.get('same_as_last_set'),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryRed,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            loc.currentLanguage == 'ru'
-                                ? '${widget.lastWeight} кг × ${widget.lastReps} повт'
-                                : '${widget.lastWeight} kg × ${widget.lastReps} reps',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                ),
+                const SizedBox(height: 24),
+                if (widget.lastWeight != null) ...[
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primaryRed.withOpacity(0.2),
+                          AppColors.darkRed.withOpacity(0.1),
                         ],
                       ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.primaryRed,
+                        width: 2,
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(child: Divider(color: AppColors.border)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        loc.get('or_enter_manually'),
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                          letterSpacing: 1.2,
+                    child: InkWell(
+                      onTap: () {
+                        widget.onComplete(widget.lastWeight!, widget.lastReps!);
+                        Navigator.of(context).pop();
+                      },
+                      borderRadius: BorderRadius.circular(16),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          children: [
+                            const Icon(
+                              Icons.refresh,
+                              color: AppColors.primaryRed,
+                              size: 32,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              loc.get('same_as_last_set'),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryRed,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              loc.currentLanguage == 'ru'
+                                  ? '${widget.lastWeight} кг × ${widget.lastReps} повт'
+                                  : '${widget.lastWeight} kg × ${widget.lastReps} reps',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    Expanded(child: Divider(color: AppColors.border)),
-                  ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      const Expanded(child: Divider(color: AppColors.border)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          loc.get('or_enter_manually'),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                      const Expanded(child: Divider(color: AppColors.border)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                GymTextField(
+                  controller: _weightController,
+                  hintText: loc.get('weight_kg'),
+                  prefixIcon: Icons.fitness_center,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 ),
                 const SizedBox(height: 16),
-              ],
-              GymTextField(
-                controller: _weightController,
-                hintText: loc.get('weight_kg'),
-                prefixIcon: Icons.fitness_center,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              ),
-              const SizedBox(height: 16),
-              GymTextField(
-                controller: _repsController,
-                hintText: loc.get('reps'),
-                prefixIcon: Icons.repeat,
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlineButton(
-                      text: loc.get('cancel'),
-                      onPressed: () => Navigator.of(context).pop(),
+                GymTextField(
+                  controller: _repsController,
+                  hintText: loc.get('reps'),
+                  prefixIcon: Icons.repeat,
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlineButton(
+                        text: loc.get('cancel'),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: GradientButton(
-                      text: loc.get('save'),
-                      onPressed: () {
-                        final weight = double.tryParse(_weightController.text) ?? 0;
-                        final reps = int.tryParse(_repsController.text) ?? 0;
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: GradientButton(
+                        text: loc.get('save'),
+                        onPressed: () {
+                          final weight = double.tryParse(_weightController.text) ?? 0;
+                          final reps = int.tryParse(_repsController.text) ?? 0;
 
-                        if (weight > 0 && reps > 0) {
-                          widget.onComplete(weight, reps);
-                          Navigator.of(context).pop();
-                        }
-                      },
+                          if (weight > 0 && reps > 0) {
+                            widget.onComplete(weight, reps);
+                            Navigator.of(context).pop();
+                          }
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      )
+        )
     );
   }
 
@@ -1242,8 +1236,6 @@ class _CompleteSetDialogState extends State<CompleteSetDialog> {
     super.dispose();
   }
 }
-
-
 
 // Exercise Selection Dialog with Search and localization
 class _ExerciseSelectionDialog extends StatefulWidget {
@@ -1276,7 +1268,6 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
 
   // Get unique muscle groups from exercises
   List<MuscleCategory> get _availableCategories => MuscleCategory.values;
-
 
   IconData _getCategoryIcon(MuscleCategory category) {
     switch (category) {
@@ -1333,7 +1324,7 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                 children: [
                   Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.fitness_center,
                         color: AppColors.primaryRed,
                         size: 28,
@@ -1376,10 +1367,10 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                     ),
                     decoration: InputDecoration(
                       hintText: loc.get('search_exercises'),
-                      hintStyle: TextStyle(
+                      hintStyle: const TextStyle(
                         color: AppColors.textMuted,
                       ),
-                      prefixIcon: Icon(
+                      prefixIcon: const Icon(
                         Icons.search,
                         color: AppColors.textSecondary,
                       ),
@@ -1406,7 +1397,7 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.primaryRed, width: 2),
+                        borderSide: const BorderSide(color: AppColors.primaryRed, width: 2),
                       ),
                     ),
                   ),
@@ -1494,7 +1485,7 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.search_off,
                       size: 64,
                       color: AppColors.textMuted,
@@ -1502,7 +1493,7 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                     const SizedBox(height: 16),
                     Text(
                       loc.get('no_exercises_found'),
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -1511,7 +1502,7 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                     const SizedBox(height: 8),
                     Text(
                       loc.get('try_different_filters'),
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 14,
                       ),
@@ -1572,7 +1563,7 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                                   const SizedBox(height: 4),
                                   Text(
                                     _getLocalizedMuscleDisplay(exercise, loc),
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: AppColors.textSecondary,
                                       fontSize: 14,
                                     ),
@@ -1580,7 +1571,7 @@ class _ExerciseSelectionDialogState extends State<_ExerciseSelectionDialog> {
                                 ],
                               ),
                             ),
-                            Icon(
+                            const Icon(
                               Icons.add_circle_outline,
                               color: AppColors.primaryRed,
                               size: 24,
