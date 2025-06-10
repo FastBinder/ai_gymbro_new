@@ -7,6 +7,7 @@ import 'screens/workout_page.dart';
 import 'screens/exercises_page.dart';
 import 'screens/progress_page.dart';
 import 'screens/profile_page.dart';
+import 'screens/workout_plans_page.dart';
 import 'services/localization_service.dart';
 import 'services/active_workout_service.dart';
 import 'widgets/navigation_drawer.dart';
@@ -167,6 +168,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final List<Widget> _pages = [
     const WorkoutPage(),
     const WorkoutHistoryPage(),
+    const WorkoutPlansPage(),
     const ExercisesPage(),
     const ProgressPage(),
     const ProfilePage(),
@@ -284,10 +286,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       case 1:
         return Icons.history;
       case 2:
-        return Icons.list;
+        return Icons.event_note;
       case 3:
-        return Icons.analytics;
+        return Icons.list;
       case 4:
+        return Icons.analytics;
+      case 5:
         return Icons.person;
       default:
         return Icons.fitness_center;
@@ -301,10 +305,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       case 1:
         return loc.get('nav_history');
       case 2:
-        return loc.get('nav_exercises');
+        return loc.currentLanguage == 'ru' ? 'ПЛАНЫ' : 'PLANS';
       case 3:
-        return loc.get('nav_progress');
+        return loc.get('nav_exercises');
       case 4:
+        return loc.get('nav_progress');
+      case 5:
         return loc.get('nav_profile');
       default:
         return '';

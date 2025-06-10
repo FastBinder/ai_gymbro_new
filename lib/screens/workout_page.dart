@@ -5,12 +5,14 @@ import 'package:provider/provider.dart';
 import 'dart:async';
 import '../models/exercise.dart';
 import '../models/workout.dart';
+import '../models/workout_plan.dart';
 import '../widgets/add_set_dialog.dart';
 import '../services/database_service.dart';
 import '../services/localization_service.dart';
 import '../services/active_workout_service.dart';
 import '../widgets/custom_widgets.dart';
 import 'workout_details_page.dart';
+import 'workout_plans_page.dart';
 
 class WorkoutPage extends StatefulWidget {
   const WorkoutPage({Key? key}) : super(key: key);
@@ -371,7 +373,7 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(32),
         child: InkWell(
-          onTap: _startWorkout,
+          onTap: _showWorkoutTypeSelection,
           borderRadius: BorderRadius.circular(32),
           child: Center(
             child: Row(
@@ -398,6 +400,381 @@ class _WorkoutPageState extends State<WorkoutPage> with TickerProviderStateMixin
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showWorkoutTypeSelection() {
+    final loc = context.read<LocalizationService>();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Text(
+              loc.currentLanguage == 'ru' ? 'Выберите тип тренировки' : 'Choose workout type',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Empty workout option
+            GymCard(
+              onTap: () {
+                Navigator.pop(context);
+                _startWorkout();
+              },
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryRed.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.add,
+                      color: AppColors.primaryRed,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          loc.currentLanguage == 'ru' ? 'Пустая тренировка' : 'Empty workout',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          loc.currentLanguage == 'ru'
+                              ? 'Добавляйте упражнения по ходу'
+                              : 'Add exercises as you go',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    color: AppColors.textSecondary,
+                    size: 16,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Plan workout option
+            GymCard(
+              onTap: () async {
+                Navigator.pop(context);
+                _showPlanSelection();
+              },
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryRed.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.event_note,
+                      color: AppColors.primaryRed,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          loc.currentLanguage == 'ru' ? 'План тренировки' : 'Workout plan',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          loc.currentLanguage == 'ru'
+                              ? 'Выберите готовый план'
+                              : 'Choose from your plans',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    color: AppColors.textSecondary,
+                    size: 16,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPlanSelection() async {
+    final plans = await _db.getAllWorkoutPlans();
+    final loc = context.read<LocalizationService>();
+
+    if (plans.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            loc.currentLanguage == 'ru'
+                ? 'У вас нет сохраненных планов'
+                : 'You have no saved plans',
+          ),
+          backgroundColor: AppColors.warning,
+          action: SnackBarAction(
+            label: loc.currentLanguage == 'ru' ? 'Создать' : 'Create',
+            textColor: Colors.white,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const WorkoutPlansPage(),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+        ),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: AppColors.border,
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.event_note,
+                    color: AppColors.primaryRed,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    loc.currentLanguage == 'ru' ? 'Выберите план' : 'Select a plan',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: plans.length,
+                itemBuilder: (context, index) {
+                  final plan = plans[index];
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: GymCard(
+                      onTap: () {
+                        Navigator.pop(context);
+                        _startWorkoutFromPlan(plan);
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  plan.name,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              if (plan.timesUsed > 0)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.success.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.check_circle,
+                                        size: 14,
+                                        color: AppColors.success,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${plan.timesUsed}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.success,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.fitness_center,
+                                size: 16,
+                                color: AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${plan.exercises.length} ${loc.currentLanguage == 'ru' ? 'упр.' : 'ex.'}',
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Icon(
+                                Icons.format_list_numbered,
+                                size: 16,
+                                color: AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${plan.totalSets} ${loc.currentLanguage == 'ru' ? 'подх.' : 'sets'}',
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Icon(
+                                Icons.timer,
+                                size: 16,
+                                color: AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '~${plan.estimatedDuration} ${loc.currentLanguage == 'ru' ? 'мин' : 'min'}',
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _startWorkoutFromPlan(WorkoutPlan plan) {
+    final workoutService = context.read<ActiveWorkoutService>();
+    final loc = context.read<LocalizationService>();
+
+    // Start workout
+    workoutService.startWorkout();
+
+    // Add exercises from plan
+    for (var plannedExercise in plan.exercises) {
+      workoutService.addExercise(plannedExercise.exercise);
+    }
+
+    // Mark plan as used
+    _db.markPlanAsUsed(plan.id);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          loc.currentLanguage == 'ru'
+              ? 'Тренировка начата по плану "${plan.name}"'
+              : 'Workout started from plan "${plan.name}"',
+        ),
+        backgroundColor: AppColors.success,
       ),
     );
   }

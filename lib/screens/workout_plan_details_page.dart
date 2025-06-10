@@ -9,6 +9,7 @@ import '../services/localization_service.dart';
 import '../services/active_workout_service.dart';
 import '../widgets/custom_widgets.dart';
 import 'create_workout_plan_page.dart';
+import '../models/exercise.dart';
 
 class WorkoutPlanDetailsPage extends StatefulWidget {
   final WorkoutPlan plan;

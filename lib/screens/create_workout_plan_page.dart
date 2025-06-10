@@ -198,7 +198,7 @@ class _CreateWorkoutPlanPageState extends State<CreateWorkoutPlanPage> {
                 border: Border.all(
                   color: AppColors.primaryRed,
                   width: 2,
-                  style: BorderStyle.dashed,
+                  style: BorderStyle.solid,
                 ),
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -710,6 +710,9 @@ class _EditExerciseDialog extends StatefulWidget {
 class _EditExerciseDialogState extends State<_EditExerciseDialog> {
   late List<PlannedSet> _sets;
   late TextEditingController _notesController;
+  late List<TextEditingController> _weightControllers;
+  late List<TextEditingController> _repsControllers;
+  late List<TextEditingController> _restControllers;
 
   @override
   void initState() {
@@ -720,11 +723,31 @@ class _EditExerciseDialogState extends State<_EditExerciseDialog> {
       restSeconds: s.restSeconds,
     )).toList();
     _notesController = TextEditingController(text: widget.plannedExercise.notes ?? '');
+
+    // Initialize controllers for each set
+    _weightControllers = _sets.map((set) =>
+        TextEditingController(text: set.targetWeight?.toString() ?? '')
+    ).toList();
+    _repsControllers = _sets.map((set) =>
+        TextEditingController(text: set.targetReps.toString())
+    ).toList();
+    _restControllers = _sets.map((set) =>
+        TextEditingController(text: set.restSeconds.toString())
+    ).toList();
   }
 
   @override
   void dispose() {
     _notesController.dispose();
+    for (var controller in _weightControllers) {
+      controller.dispose();
+    }
+    for (var controller in _repsControllers) {
+      controller.dispose();
+    }
+    for (var controller in _restControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -851,7 +874,7 @@ class _EditExerciseDialogState extends State<_EditExerciseDialog> {
             child: Container(
               height: 40,
               child: TextField(
-                initialValue: set.targetWeight?.toString() ?? '',
+                controller: _weightControllers[index],
                 keyboardType: TextInputType.number,
                 style: const TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
@@ -883,7 +906,7 @@ class _EditExerciseDialogState extends State<_EditExerciseDialog> {
             child: Container(
               height: 40,
               child: TextField(
-                initialValue: set.targetReps.toString(),
+                controller: _repsControllers[index],
                 keyboardType: TextInputType.number,
                 style: const TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
@@ -913,7 +936,7 @@ class _EditExerciseDialogState extends State<_EditExerciseDialog> {
             child: Container(
               height: 40,
               child: TextField(
-                initialValue: set.restSeconds.toString(),
+                controller: _restControllers[index],
                 keyboardType: TextInputType.number,
                 style: const TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
@@ -943,7 +966,15 @@ class _EditExerciseDialogState extends State<_EditExerciseDialog> {
           if (_sets.length > 1)
             IconButton(
               icon: const Icon(Icons.delete, color: AppColors.warning, size: 20),
-              onPressed: () => setState(() => _sets.removeAt(index)),
+              onPressed: () => setState(() {
+                _sets.removeAt(index);
+                _weightControllers[index].dispose();
+                _weightControllers.removeAt(index);
+                _repsControllers[index].dispose();
+                _repsControllers.removeAt(index);
+                _restControllers[index].dispose();
+                _restControllers.removeAt(index);
+              }),
             ),
         ],
       ),
@@ -952,11 +983,15 @@ class _EditExerciseDialogState extends State<_EditExerciseDialog> {
 
   void _addSet() {
     setState(() {
-      _sets.add(PlannedSet(
+      final newSet = PlannedSet(
         targetReps: 10,
         targetWeight: _sets.isNotEmpty ? _sets.last.targetWeight : null,
         restSeconds: 90,
-      ));
+      );
+      _sets.add(newSet);
+      _weightControllers.add(TextEditingController(text: newSet.targetWeight?.toString() ?? ''));
+      _repsControllers.add(TextEditingController(text: newSet.targetReps.toString()));
+      _restControllers.add(TextEditingController(text: newSet.restSeconds.toString()));
     });
   }
 

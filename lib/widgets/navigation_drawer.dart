@@ -33,8 +33,8 @@ class _CustomNavigationDrawerState extends State<CustomNavigationDrawer>
       vsync: this,
     );
 
-    // Создаем анимации для каждого элемента меню с задержкой
-    _itemAnimations = List.generate(5, (index) {
+    // Создаем анимации для каждого элемента меню с задержкой (теперь 6 элементов)
+    _itemAnimations = List.generate(6, (index) {
       return Tween<double>(
         begin: 0.0,
         end: 1.0,
@@ -119,26 +119,34 @@ class _CustomNavigationDrawerState extends State<CustomNavigationDrawer>
                   ),
                   _buildMenuItem(
                     index: 2,
-                    icon: Icons.list,
-                    title: loc.get('nav_exercises'),
+                    icon: Icons.event_note,
+                    title: loc.currentLanguage == 'ru' ? 'Планы' : 'Plans',
                     isSelected: widget.selectedIndex == 2,
                     animation: _itemAnimations[2],
                     isSmallScreen: isSmallScreen,
                   ),
                   _buildMenuItem(
                     index: 3,
-                    icon: Icons.analytics,
-                    title: loc.get('nav_progress'),
+                    icon: Icons.list,
+                    title: loc.get('nav_exercises'),
                     isSelected: widget.selectedIndex == 3,
                     animation: _itemAnimations[3],
                     isSmallScreen: isSmallScreen,
                   ),
                   _buildMenuItem(
                     index: 4,
-                    icon: Icons.person,
-                    title: loc.get('nav_profile'),
+                    icon: Icons.analytics,
+                    title: loc.get('nav_progress'),
                     isSelected: widget.selectedIndex == 4,
                     animation: _itemAnimations[4],
+                    isSmallScreen: isSmallScreen,
+                  ),
+                  _buildMenuItem(
+                    index: 5,
+                    icon: Icons.person,
+                    title: loc.get('nav_profile'),
+                    isSelected: widget.selectedIndex == 5,
+                    animation: _itemAnimations[5],
                     isSmallScreen: isSmallScreen,
                   ),
                 ],
